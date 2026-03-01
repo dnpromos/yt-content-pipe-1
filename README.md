@@ -1,4 +1,6 @@
 # yt-content-pipe
+WIRO_API_KEY=b6zf9bmon5nm3yyrfzyay17bf66j1l5k
+WIRO_API_SECRET=610ea070560bbeb6e76bff52fbfd7f04d57f8459afc7862d47aaa36dc529e845
 
 A Python pipeline that generates listicle YouTube videos by orchestrating LLM script writing, AI voice synthesis, AI image generation, and automated video assembly with effects.
 
