@@ -1,0 +1,56 @@
+{
+  "title": "top 5 vibe coding apps in 2026",
+  "intro_narration": "Forget syntax  and semicolons. In 2026, we’re building entire empires using nothing but pure vibes and natural language.",
+  "sections": [
+    {
+      "number": 1,
+      "heading": "Cursor 5 .0",
+      "narration": "The veteran of the space has evolved into a mind-reading powerhouse. It predicts  your next feature based on your project's 'mood' and handles the entire deployment pipeline autonomously.",
+      "image_prompt": "A futuristic holographic workstation where glowing code blocks assemble themselves into a complex structure, cinematic lighting.",
+      "audio_path": null,
+      "image_path": null,
+      "duration": null
+    },
+    {
+      "number": 2,
+      "heading": "Canvas Flow",
+      "narration": "Stop  typing and start drawing. This tool converts rough sketches and whiteboards into functional, high-performance web applications in seconds.",
+      "image_prompt": "Cinematic illustration of: Canvas Flow, dramatic lighting, high detail, 16:9",
+      "audio_path": null,
+      "image_path": null,
+      "duration": null
+    },
+    {
+      "number": 3,
+      "heading": "Echo Dev ",
+      "narration": "Coding is now a conversation. Echo Dev lets you build complex backend architectures just by talking  to your AI agent while you're on a walk.",
+      "image_prompt": "A person wearing sleek , transparent AR glasses walking through a park while floating lines of code drift in the air beside them.",
+      "audio_path": null,
+      "image_path": null,
+      "duration": null
+    },
+    {
+      "number": 4,
+      "heading": "Pocket Architect",
+      "narration": " The ultimate mobile IDE for the nomad developer. Use simple swipe gestures and voice commands to manage global server clusters from your phone.",
+      "image_prompt": "A close-up of a futuristic smartphone screen displaying a 3D map of global data  centers glowing in neon blue.",
+      "audio_path": null,
+      "image_path": null,
+      "duration": null
+    },
+    {
+      "number": 5,
+      "heading": "Neural  Studio",
+      "narration": "The final frontier of vibe coding. Using a lightweight headband, it translates your mental creative  vision directly into production-ready software.",
+      "image_prompt": "A developer wearing a minimalist glowing headband sitting  in a dark room as a massive screen fills with beautiful, flowing data visualizations.",
+      "audio_path": null,
+      "image_path": null,
+      "duration": null
+    }
+  ],
+  "outro_narration": "",
+  "intro_audio_path": null,
+  "outro_audio_path": null,
+  "intro_duration": null,
+  "outro_duration": null
+}

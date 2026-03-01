@@ -1,0 +1,31 @@
+llm:
+  provider: wiro
+  api_key_env: WIRO_API_KEY
+  extra:
+    api_secret_env: WIRO_API_SECRET
+
+voice:
+  provider: wiro
+  voice_id: EXAVITQu4vr4xnSDxMaL  # Sarah
+  api_key_env: WIRO_API_KEY
+  extra:
+    api_secret_env: WIRO_API_SECRET
+    tts_model: eleven_flash_v2_5
+    output_format: mp3_44100_128
+
+image:
+  provider: wiro
+  api_key_env: WIRO_API_KEY
+  extra:
+    api_secret_env: WIRO_API_SECRET
+    aspect_ratio: "16:9"
+    resolution: "2K"
+    safety_setting: "OFF"
+
+video:
+  resolution: [1920, 1080]
+  fps: 30
+  transition: crossfade
+  transition_duration: 0.8
+  ken_burns: true
+  font: assets/fonts/Montserrat-Bold.ttf

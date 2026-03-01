@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project
+output/_debug/
+output/*/final_video.mp4
+config.yaml
+.env
+
+# Temp
+*TEMP_MPY*
+
+# OS
+.DS_Store
+Thumbs.db
