@@ -541,7 +541,7 @@ with main_col:
 
     if st.session_state.stage in ("assets_done", "video_done"):
         script = st.session_state.script
-        run_dir = st.session_state.run_dir
+        run_dir = Path(st.session_state.run_dir).resolve()
 
         st.markdown('<p class="label">preview assets</p>', unsafe_allow_html=True)
         intro_audio = run_dir / "audio" / "intro.mp3"
@@ -551,13 +551,30 @@ with main_col:
 
         for sec in script.sections:
             st.markdown(f"**{sec.number}. {sec.heading}**")
+            # Find image: try script path, then discover from run_dir
+            img_file = None
+            if sec.image_path and Path(sec.image_path).resolve().exists():
+                img_file = Path(sec.image_path).resolve()
+            else:
+                candidate = run_dir / "images" / f"section_{sec.number:02d}.png"
+                if candidate.exists():
+                    img_file = candidate
+            # Find audio: try script path, then discover from run_dir
+            aud_file = None
+            if sec.audio_path and Path(sec.audio_path).resolve().exists():
+                aud_file = Path(sec.audio_path).resolve()
+            else:
+                candidate = run_dir / "audio" / f"section_{sec.number:02d}.mp3"
+                if candidate.exists():
+                    aud_file = candidate
+
             lc, rc = st.columns([2, 1])
             with lc:
-                if sec.image_path and Path(sec.image_path).exists():
-                    st.image(str(sec.image_path), use_container_width=True)
+                if img_file:
+                    st.image(str(img_file), use_container_width=True)
             with rc:
-                if sec.audio_path and Path(sec.audio_path).exists():
-                    st.audio(str(sec.audio_path))
+                if aud_file:
+                    st.audio(str(aud_file))
                 if sec.duration:
                     st.caption(f"{sec.duration:.1f}s")
 
