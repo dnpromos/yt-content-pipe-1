@@ -63,10 +63,9 @@ export OPENAI_API_KEY=sk-your-key-here
 streamlit run app.py
 ```
 
-Opens at `http://localhost:8501`. The UI provides:
-- **Sidebar** — configure providers, API keys, video settings
-- **Step-by-step mode** — generate script → edit → generate assets → preview → assemble video
-- **One-click mode** — run the full pipeline with a single button
+Opens at `http://localhost:8501`. Enter your API keys in the sidebar credentials section, configure voice/image/video settings, then either:
+- **Step-by-step** — generate script → edit → generate assets → preview → assemble video
+- **One-click** — run the full pipeline with a single button
 - **Load previous runs** — resume from any `script.json`
 
 ### Full Pipeline (topic → video)
