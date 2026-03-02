@@ -1,7 +1,37 @@
 # yt-content-pipe
 
-
 A Python pipeline that generates listicle YouTube videos by orchestrating LLM script writing, AI voice synthesis, AI image generation, and automated video assembly with effects.
+
+## Quick Start
+
+```bash
+git clone https://github.com/onurozcan/yt-content-pipe.git
+cd yt-content-pipe
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # edit with your Wiro API credentials
+streamlit run app.py
+```
+
+Opens at `http://localhost:8501`.
+
+## Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+WIRO_API_KEY=your-wiro-api-key
+WIRO_API_SECRET=your-wiro-api-secret
+```
+
+You can also enter these in the sidebar credentials section of the UI.
+
+## Prerequisites
+
+- **Python 3.10+**
+- **FFmpeg** — must be installed and on your PATH
+  - macOS: `brew install ffmpeg`
+  - Windows: `winget install FFmpeg`
 
 ## Pipeline
 
@@ -16,44 +46,8 @@ Topic → LLM Script → Voice + Images (parallel) → Video Assembly → final_
 - **Ken Burns Effect** — zoom/pan on still images for cinematic motion
 - **Text Overlays** — section number badges, heading bars, title cards
 - **Transitions** — crossfade, slide, or hard cut between sections
-- **Pluggable Providers** — swap LLM, TTS, and image providers via config
-
-## Prerequisites
-
-- **Python 3.10+**
-- **FFmpeg** — must be installed and on your PATH
-  - Windows: `winget install FFmpeg` or download from https://ffmpeg.org
-  - macOS: `brew install ffmpeg`
-- API keys for your chosen AI providers
-
-## Setup
-
-```bash
-# Clone and enter the project
-cd yt-content-pipe
-
-# Create virtual environment
-python -m venv .venv
-
-# Activate (Windows)
-.venv\Scripts\activate
-
-# Activate (macOS/Linux)
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Copy and edit config
-cp config.example.yaml config.yaml
-# Edit config.yaml with your API keys and settings
-
-# Set API key environment variable
-# Windows:
-set OPENAI_API_KEY=sk-your-key-here
-# macOS/Linux:
-export OPENAI_API_KEY=sk-your-key-here
-```
+- **Background Tasks** — generation runs in background threads, survives UI interactions
+- **Hardware Encoding** — uses Apple VideoToolbox on macOS for fast GPU encoding
 
 ## Usage
 
@@ -63,30 +57,22 @@ export OPENAI_API_KEY=sk-your-key-here
 streamlit run app.py
 ```
 
-Opens at `http://localhost:8501`. Enter your API keys in the sidebar credentials section, configure voice/image/video settings, then either:
 - **Step-by-step** — generate script → edit → generate assets → preview → assemble video
 - **One-click** — run the full pipeline with a single button
 - **Load previous runs** — resume from any `script.json`
 
-### Full Pipeline (topic → video)
+### CLI
 
 ```bash
+# Full pipeline
 python -m src generate --topic "Top 5 AI Tools in 2026" --sections 5
-```
 
-### Script Only (no voice/image/video)
-
-```bash
+# Script only
 python -m src script --topic "Top 5 AI Tools in 2026" --sections 5
-```
 
-### Re-assemble Video (from existing script.json)
-
-```bash
+# Re-assemble video from existing script
 python -m src assemble --script output/run_20260301_230000/script.json
 ```
-
-### Options
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
