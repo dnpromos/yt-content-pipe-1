@@ -8,7 +8,7 @@ from src.models import ProviderConfig
 from src.providers.base import ImageProvider
 from src.providers.wiro_client import WiroClient
 
-RUN_URL = "https://api.wiro.ai/v1/Run/google/nano-banana-pro"
+RUN_URL = "https://api.wiro.ai/v1/Run/google/nano-banana-2"
 
 
 class WiroImageProvider(ImageProvider):

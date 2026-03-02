@@ -8,7 +8,7 @@ def apply_ken_burns(
     image_path: str,
     duration: float,
     resolution: tuple[int, int] = (1920, 1080),
-    zoom_ratio: float = 0.08,
+    zoom_ratio: float | None = None,
     direction: str = "in",
 ) -> ImageClip:
     """Apply a Ken Burns (zoom + pan) effect to a still image.
@@ -17,12 +17,17 @@ def apply_ken_burns(
         image_path: Path to the source image.
         duration: Duration of the clip in seconds.
         resolution: Output resolution (width, height).
-        zoom_ratio: How much to zoom over the duration (0.08 = 8%).
+        zoom_ratio: How much to zoom over the duration. If None, auto-scales
+                    based on duration for consistent visual impact.
         direction: "in" for zoom-in, "out" for zoom-out.
 
     Returns:
         A MoviePy clip with the Ken Burns effect applied.
     """
+    if zoom_ratio is None:
+        # Scale zoom based on duration: ~3% per second, clamped 10%–30%
+        zoom_ratio = max(0.10, min(0.30, duration * 0.03))
+
     w, h = resolution
     clip = ImageClip(image_path).with_duration(duration)
 

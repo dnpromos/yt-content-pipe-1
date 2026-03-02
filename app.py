@@ -3,21 +3,26 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import platform
 import subprocess
 import time
 from pathlib import Path
 
 from dotenv import load_dotenv
+from PIL import Image as PILImage
 import streamlit as st
 
 load_dotenv()
 
 import src.log as pipelog
+from src.bg_task import start_task
+from src.bg_wrappers import bg_gen_script, bg_gen_assets, bg_full_pipeline, bg_assemble, bg_retry_section
 from src.models import AppConfig, ProviderConfig, Script, Section, VideoConfig
 from src.pipeline import (
     _create_run_dir,
     generate_assets,
     generate_script,
+    regenerate_single_image,
     assemble_video,
     load_script,
     save_script,
@@ -59,11 +64,15 @@ st.markdown(
 <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
 
-    *, html, body, [class*="st-"] {
+    html, body, p, input, textarea, select, button, label, a,
+    h1, h2, h3, h4, h5, h6, li, td, th, code, pre,
+    [data-testid="stMarkdownContainer"],
+    [data-testid="stText"],
+    .stTextInput, .stTextArea, .stSelectbox {
         font-family: 'JetBrains Mono', 'Courier New', monospace !important;
     }
 
-    .block-container { padding-top: 2rem; }
+    .block-container { padding-top: 1.5rem; }
 
     h1, h2, h3, h4, h5, h6 {
         font-family: 'JetBrains Mono', monospace !important;
@@ -71,11 +80,14 @@ st.markdown(
         letter-spacing: -0.02em;
     }
 
+    /* Tighter vertical spacing */
+    [data-testid="stVerticalBlock"] { gap: 0.75rem !important; }
+
     /* Muted label style */
-    .label { color: #666; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .label { color: #666; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
 
     /* Section divider */
-    .sep { border-top: 1px solid #1e1e1e; margin: 2rem 0; }
+    .sep { border-top: 1px solid #1e1e1e; margin: 1rem 0; }
 
     /* Step indicator */
     .step {
@@ -84,13 +96,12 @@ st.markdown(
         border: 1px solid #2a2a2a;
         border-radius: 4px;
         padding: 2px 10px;
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         color: #555;
         text-transform: uppercase;
         letter-spacing: 0.1em;
         margin-bottom: 8px;
     }
-    .step.active { border-color: #555; color: #aaa; }
     .step.done { border-color: #333; color: #4a4; }
 
     /* Metric */
@@ -98,14 +109,22 @@ st.markdown(
         background: #111;
         border: 1px solid #1e1e1e;
         border-radius: 4px;
-        padding: 16px;
+        padding: 12px;
         text-align: center;
     }
-    .metric .val { font-size: 1.4rem; color: #ccc; font-weight: 600; }
-    .metric .lbl { font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+    .metric .val { font-size: 1.2rem; color: #ccc; font-weight: 600; }
+    .metric .lbl { font-size: 0.6rem; color: #555; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
 
-    /* Hide streamlit branding */
-    #MainMenu, footer, header { visibility: hidden; }
+    /* Kill all Streamlit rerun animations */
+    .stApp * {
+        animation-duration: 0s !important;
+        transition-duration: 0s !important;
+    }
+
+    /* Hide streamlit branding, deploy, toolbar */
+    #MainMenu, footer, header, [data-testid="stToolbar"],
+    [data-testid="stDecoration"], [data-testid="stStatusWidget"],
+    .stDeployButton { display: none !important; }
 
     /* Sidebar tweaks */
     section[data-testid="stSidebar"] {
@@ -152,13 +171,27 @@ st.markdown(
         border-radius: 4px;
         background: #0d0d0d;
     }
-    /* Hide expander arrow icons */
-    div[data-testid="stExpander"] svg {
-        display: none !important;
-    }
 
     /* Progress bar */
     .stProgress > div > div > div { background: #555 !important; }
+
+    /* Log panel */
+    .log-panel {
+        position: sticky;
+        top: 3.5rem;
+        height: 80vh;
+        overflow-y: auto;
+        background: #0a0a0a;
+        border: 1px solid #1a1a1a;
+        border-radius: 4px;
+        padding: 0.75rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        line-height: 1.5;
+        color: #888;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
 </style>
 """,
     unsafe_allow_html=True,
@@ -173,18 +206,36 @@ for key, val in {
     "run_dir": None,
     "stage": "idle",
     "logs": [],
+    "task": None,
 }.items():
     if key not in st.session_state:
         st.session_state[key] = val
 
+# Capture list reference — safe to use from background threads (GIL protects append)
+_log_list = st.session_state.logs
+
+_live_log_placeholder = None
+
+
+def _set_log_placeholder(placeholder):
+    global _live_log_placeholder
+    _live_log_placeholder = placeholder
+
+
+def _flush_logs():
+    """Rewrite the log placeholder with current logs (newest first)."""
+    if _live_log_placeholder is not None and _log_list:
+        log_html = "\n".join(reversed(_log_list))
+        _live_log_placeholder.markdown(f'<div class="log-panel">{log_html}</div>', unsafe_allow_html=True)
+
 
 def _log(msg: str):
-    st.session_state.logs.append(f"[{time.strftime('%H:%M:%S')}] {msg}")
+    _log_list.append(f"[{time.strftime('%H:%M:%S')}] {msg}")
+    _flush_logs()
 
 
-# Wire pipeline logging into session state
 def _pipe_log_callback(line: str):
-    st.session_state.logs.append(line)
+    _log_list.append(line)
 
 pipelog.clear_callbacks()
 pipelog.add_callback(_pipe_log_callback)
@@ -194,88 +245,111 @@ pipelog.add_callback(_pipe_log_callback)
 # Sidebar
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("### config")
+    with st.expander("credentials", expanded=False):
+        wiro_api_key = st.text_input(
+            "api key", type="password", key="wiro_key", label_visibility="collapsed",
+            placeholder="WIRO_API_KEY", value=os.environ.get("WIRO_API_KEY", ""),
+        )
+        wiro_api_secret = st.text_input(
+            "api secret", type="password", key="wiro_secret", label_visibility="collapsed",
+            placeholder="WIRO_API_SECRET", value=os.environ.get("WIRO_API_SECRET", ""),
+        )
 
-    st.markdown('<p class="label">wiro credentials</p>', unsafe_allow_html=True)
-    wiro_api_key = st.text_input(
-        "api key", type="password", key="wiro_key", label_visibility="collapsed",
-        placeholder="WIRO_API_KEY",
-        value=os.environ.get("WIRO_API_KEY", ""),
-    )
-    wiro_api_secret = st.text_input(
-        "api secret", type="password", key="wiro_secret", label_visibility="collapsed",
-        placeholder="WIRO_API_SECRET",
-        value=os.environ.get("WIRO_API_SECRET", ""),
-    )
+    with st.expander("voice", expanded=True):
+        voice_name = st.selectbox(
+            "voice", list(VOICE_OPTIONS.keys()),
+            index=list(VOICE_OPTIONS.keys()).index("Sarah"),
+            key="voice_sel", label_visibility="collapsed",
+        )
+        tts_model = st.selectbox(
+            "model",
+            ["eleven_flash_v2_5", "eleven_v3", "eleven_flash_v2", "eleven_turbo_v2_5", "eleven_turbo_v2"],
+            key="tts_model_sel", label_visibility="collapsed",
+        )
 
-    st.markdown("---")
-    st.markdown('<p class="label">voice</p>', unsafe_allow_html=True)
-    voice_name = st.selectbox(
-        "voice", list(VOICE_OPTIONS.keys()), index=list(VOICE_OPTIONS.keys()).index("Sarah"),
-        key="voice_sel", label_visibility="collapsed",
-    )
-    tts_model = st.selectbox(
-        "tts model",
-        ["eleven_flash_v2_5", "eleven_v3", "eleven_flash_v2", "eleven_turbo_v2_5", "eleven_turbo_v2"],
-        key="tts_model_sel", label_visibility="collapsed",
-    )
+    with st.expander("image", expanded=True):
+        IMAGE_STYLES = [
+            "cinematic realistic", "photorealistic", "3D render", "digital art",
+            "anime", "watercolor", "oil painting", "comic book", "pixel art",
+        ]
+        img_style = st.selectbox("style", IMAGE_STYLES, index=0, key="img_style", label_visibility="collapsed")
+        c1, c2 = st.columns(2)
+        with c1:
+            img_resolution = st.selectbox("resolution", ["1K", "2K", "4K"], index=1, key="img_res", label_visibility="collapsed")
+        with c2:
+            img_aspect = st.selectbox("aspect", ["16:9", "1:1", "3:2", "4:3", "9:16", "21:9"], key="img_asp", label_visibility="collapsed")
+        imgs_per_section = st.selectbox("images per section", [1, 2, 3, 4, 5], index=0, key="imgs_per_sec")
 
-    st.markdown("---")
-    st.markdown('<p class="label">image</p>', unsafe_allow_html=True)
-    img_resolution = st.selectbox("resolution", ["1K", "2K", "4K"], index=1, key="img_res", label_visibility="collapsed")
-    img_aspect = st.selectbox(
-        "aspect ratio",
-        ["16:9", "1:1", "3:2", "4:3", "9:16", "21:9"],
-        key="img_asp",
-        label_visibility="collapsed",
-    )
-
-    st.markdown("---")
-    st.markdown('<p class="label">video</p>', unsafe_allow_html=True)
-    v_transition = st.selectbox("transition", ["crossfade", "slide", "cut"], key="v_trans", label_visibility="collapsed")
-    v_trans_dur = st.slider("transition sec", 0.2, 2.0, 0.8, 0.1, key="v_td", label_visibility="collapsed")
-    v_ken_burns = st.toggle("ken burns", value=True, key="v_kb")
-    v_fps = st.selectbox("fps", [24, 30, 60], index=1, key="v_fps", label_visibility="collapsed")
-
-    # -- Process monitor --
-    st.markdown("---")
-    st.markdown('<p class="label">processes</p>', unsafe_allow_html=True)
+    with st.expander("video", expanded=True):
+        VIDEO_RESOLUTIONS = {
+            "720p": (1280, 720),
+            "1080p": (1920, 1080),
+            "1440p": (2560, 1440),
+            "4K": (3840, 2160),
+        }
+        v_res_label = st.selectbox("resolution", list(VIDEO_RESOLUTIONS.keys()), index=0, key="v_res")
+        v_resolution = VIDEO_RESOLUTIONS[v_res_label]
+        c3, c4 = st.columns(2)
+        with c3:
+            v_transition = st.selectbox("transition", ["crossfade", "slide", "cut"], key="v_trans", label_visibility="collapsed")
+        with c4:
+            v_fps = st.selectbox("fps", [24, 30, 60], index=1, key="v_fps", label_visibility="collapsed")
+        c5, c6 = st.columns(2)
+        with c5:
+            v_trans_dur = st.number_input("trans dur", 0.2, 2.0, 0.8, 0.1, key="v_td")
+        with c6:
+            v_section_gap = st.number_input("section gap", 0.0, 2.0, 0.5, 0.1, key="v_gap")
+        c7, c8 = st.columns(2)
+        with c7:
+            v_ken_burns = st.toggle("ken burns", value=True, key="v_kb")
+        with c8:
+            PRESET_OPTIONS = {"ultrafast": "ultrafast", "fast": "fast", "medium": "medium", "slow": "slow"}
+            v_preset_label = st.selectbox("encode", list(PRESET_OPTIONS.keys()), index=0, key="v_preset", label_visibility="collapsed")
+            v_preset = PRESET_OPTIONS[v_preset_label]
 
     def _get_ffmpeg_procs() -> list[dict]:
         try:
-            out = subprocess.check_output(
-                'tasklist /FI "IMAGENAME eq ffmpeg*" /FO CSV /NH',
-                shell=True, text=True, stderr=subprocess.DEVNULL,
-            )
-            procs = []
-            for line in out.strip().splitlines():
-                parts = line.strip('"').split('","')
-                if len(parts) >= 5 and "ffmpeg" in parts[0].lower():
-                    procs.append({
-                        "name": parts[0],
-                        "pid": parts[1],
-                        "mem": parts[4],
-                    })
-            return procs
+            if platform.system() == "Windows":
+                out = subprocess.check_output(
+                    'tasklist /FI "IMAGENAME eq ffmpeg*" /FO CSV /NH',
+                    shell=True, text=True, stderr=subprocess.DEVNULL,
+                )
+                procs = []
+                for line in out.strip().splitlines():
+                    parts = line.strip('"').split('","')
+                    if len(parts) >= 5 and "ffmpeg" in parts[0].lower():
+                        procs.append({"pid": parts[1], "info": parts[4]})
+                return procs
+            else:
+                out = subprocess.check_output(
+                    ["pgrep", "-lf", "ffmpeg"],
+                    text=True, stderr=subprocess.DEVNULL,
+                )
+                procs = []
+                for line in out.strip().splitlines():
+                    parts = line.strip().split(None, 1)
+                    if len(parts) >= 1:
+                        procs.append({"pid": parts[0], "info": parts[1] if len(parts) > 1 else "ffmpeg"})
+                return procs
         except Exception:
             return []
 
     ffmpeg_procs = _get_ffmpeg_procs()
-    if ffmpeg_procs:
-        for p in ffmpeg_procs:
-            st.text(f"PID {p['pid']}  {p['mem']}")
-        if st.button("kill all ffmpeg", use_container_width=True, type="primary"):
-            try:
-                subprocess.run(
-                    'taskkill /F /IM "ffmpeg*"',
-                    shell=True, capture_output=True,
-                )
-                _log("killed all ffmpeg processes")
-                st.rerun()
-            except Exception as e:
-                st.error(str(e))
-    else:
-        st.text("no ffmpeg running")
+    n = len(ffmpeg_procs)
+    fc1, fc2 = st.columns([3, 1])
+    with fc1:
+        st.markdown(
+            f'<span style="color:{"#e55" if n else "#444"};font-size:0.7rem;">ffmpeg: {n} running</span>',
+            unsafe_allow_html=True,
+        )
+    with fc2:
+        if n:
+            st.button("kill", key="kill_ffmpeg", use_container_width=True,
+                      on_click=lambda: (
+                          subprocess.run(['pkill', '-f', 'ffmpeg'], capture_output=True)
+                          if platform.system() != 'Windows'
+                          else subprocess.run('taskkill /F /IM "ffmpeg*"', shell=True, capture_output=True)
+                      ))
 
 
 def _build_config() -> AppConfig:
@@ -310,15 +384,19 @@ def _build_config() -> AppConfig:
                 "aspect_ratio": img_aspect,
                 "resolution": img_resolution,
                 "safety_setting": "OFF",
+                "image_style": img_style,
             },
         ),
         video=VideoConfig(
-            resolution=(1920, 1080),
+            resolution=v_resolution,
             fps=v_fps,
             transition=v_transition,
             transition_duration=v_trans_dur,
+            section_gap=v_section_gap,
             ken_burns=v_ken_burns,
+            encoding_preset=v_preset,
             font="assets/fonts/Montserrat-Bold.ttf",
+            images_per_section=imgs_per_section,
         ),
     )
 
@@ -339,7 +417,7 @@ main_col, log_col = st.columns([5, 3])
 
 
 def _find_previous_runs() -> list[Path]:
-    output_dir = Path("output")
+    output_dir = Path("output").resolve()
     if not output_dir.exists():
         return []
     return sorted(
@@ -351,21 +429,74 @@ def _find_previous_runs() -> list[Path]:
 
 # ===== RIGHT COLUMN: LOGS =====
 with log_col:
-    st.markdown('<p class="label">logs</p>', unsafe_allow_html=True)
-    log_placeholder = st.empty()
-    if st.button("clear logs", use_container_width=True):
-        st.session_state.logs = []
-        st.rerun()
+    @st.fragment(run_every=2)
+    def _log_fragment():
+        # Poll background task — only this fragment reruns, no full-page blink
+        _task = st.session_state.task
+        if _task is not None and _task.done:
+            if _task.error:
+                _log(f"ERROR: {_task.error}")
+            else:
+                result = _task.result
+                rtype = result.get("type", "")
+                if rtype == "gen_script":
+                    st.session_state.script = result["script"]
+                    st.session_state.run_dir = result["run_dir"]
+                    st.session_state.stage = "scripted"
+                    _log(f"script saved: {result['run_dir'].name}")
+                elif rtype == "gen_assets":
+                    st.session_state.script = result["script"]
+                    st.session_state.stage = "assets_done"
+                    missing = [s for s in result["script"].sections if not s.image_path or not Path(s.image_path).exists()]
+                    if missing:
+                        _log(f"{len(missing)} image(s) missing — retry or upload below")
+                    else:
+                        _log("assets ready")
+                elif rtype == "full_pipeline":
+                    st.session_state.script = result["script"]
+                    st.session_state.run_dir = result["run_dir"]
+                    st.session_state.stage = result["stage"]
+                    if result["stage"] == "video_done":
+                        _log(f"pipeline complete: {result.get('video_path', '')}")
+                    else:
+                        _log(f"{result.get('missing', 0)} image(s) missing — retry or upload below")
+                elif rtype == "assemble":
+                    st.session_state.script = result["script"]
+                    st.session_state.stage = "video_done"
+                    _log(f"video done: {result.get('video_path', '')}")
+                elif rtype == "retry_section":
+                    sec_num = result["section_number"]
+                    new_paths = [Path(p) for p in result["image_paths"]]
+                    script = st.session_state.script
+                    for sec in script.sections:
+                        if sec.number == sec_num:
+                            sec.image_path = new_paths[0] if new_paths else sec.image_path
+                            sec.image_paths = new_paths
+                            break
+                    save_script(script, st.session_state.run_dir)
+                    _log(f"section {sec_num}: {len(new_paths)} image(s) regenerated")
+                elif rtype == "retry_single":
+                    save_script(st.session_state.script, st.session_state.run_dir)
+                    _log(f"image regenerated: {Path(result['image_path']).name}")
+            st.session_state.task = None
+            st.rerun()
+
+        # Render logs
+        if _log_list:
+            log_html = "\n".join(reversed(_log_list))
+            st.markdown(f'<div class="log-panel">{log_html}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(
+                '<span style="color:#444;font-size:0.75rem;">no logs yet</span>',
+                unsafe_allow_html=True,
+            )
+        if st.button("clear logs", use_container_width=True):
+            _log_list.clear()
+
+    _log_fragment()
 
 # ===== LEFT COLUMN: MAIN =====
 with main_col:
-    st.markdown("# yt-content-pipe")
-    st.markdown(
-        '<span style="color:#555;font-size:0.8rem;">topic > script > voice + images > video</span>',
-        unsafe_allow_html=True,
-    )
-
-    # Step indicators
     stage = st.session_state.stage
     steps = [
         ("script", stage in ("scripted", "assets_done", "video_done")),
@@ -375,7 +506,10 @@ with main_col:
     step_html = " ".join(
         f'<span class="step {"done" if done else ""}">{name}</span>' for name, done in steps
     )
-    st.markdown(step_html, unsafe_allow_html=True)
+    st.markdown(
+        f'<span style="color:#888;font-size:0.85rem;font-weight:600;">yt-content-pipe</span>&nbsp;&nbsp;{step_html}',
+        unsafe_allow_html=True,
+    )
     st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
 
     # -- Topic --
@@ -387,284 +521,314 @@ with main_col:
     st.markdown('<p class="label">subtitles (one per line, optional)</p>', unsafe_allow_html=True)
     subtitles_raw = st.text_area(
         "subtitles", placeholder="FlowState.ai\nMoodBoard Studio\nCodeWhisper Pro",
-        key="subtitles", label_visibility="collapsed", height=100,
+        key="subtitles", label_visibility="collapsed", height=68,
     )
-
-    col_a, col_b = st.columns([1, 4])
-    with col_a:
-        num_sections = st.number_input("sections", 2, 20, 5, key="n_sec", label_visibility="collapsed")
 
     def _parse_subtitles() -> list[str] | None:
         lines = [l.strip() for l in subtitles_raw.strip().splitlines() if l.strip()]
         return lines if lines else None
 
-    st.markdown("")
+    _task_active = st.session_state.task is not None and (st.session_state.task.running or not st.session_state.task.done)
 
-    # -- Buttons --
-    gen_script_btn = st.button("generate script", use_container_width=True)
-    full_btn = st.button("full pipeline", type="primary", use_container_width=True)
+    btn_a, btn_b, btn_c = st.columns([1, 2, 2])
+    with btn_a:
+        num_sections = st.number_input("sections", 2, 20, 5, key="n_sec", label_visibility="collapsed")
+    with btn_b:
+        gen_script_btn = st.button("generate script", use_container_width=True, disabled=_task_active)
+    with btn_c:
+        full_btn = st.button("full pipeline", type="primary", use_container_width=True, disabled=_task_active)
 
     # -- Generate script only --
-    if gen_script_btn:
+    if gen_script_btn and not _task_active:
         if not topic.strip():
             st.error("enter a topic")
         else:
             config = _build_config()
             if _check_creds():
+                subs = _parse_subtitles()
+                if subs:
+                    _log(f"subtitles: {subs}")
                 _log("starting script generation...")
-                with st.status("generating script...", expanded=True) as status:
-                    try:
-                        subs = _parse_subtitles()
-                        if subs:
-                            _log(f"subtitles: {subs}")
-                        st.write("submitting to LLM...")
-                        script = asyncio.run(generate_script(config, topic.strip(), num_sections, subtitles=subs))
-                        run_dir = _create_run_dir()
-                        save_script(script, run_dir)
-                        st.session_state.script = script
-                        st.session_state.run_dir = run_dir
-                        st.session_state.config = config
-                        st.session_state.stage = "scripted"
-                        _log(f"script saved: {run_dir.name}")
-                        status.update(label="script done", state="complete")
-                        st.rerun()
-                    except Exception as e:
-                        _log(f"ERROR: {e}")
-                        status.update(label="failed", state="error")
-                        st.error(f"failed: {e}")
+                st.session_state.config = config
+                st.session_state.task = start_task(
+                    bg_gen_script,
+                    args=(config, topic.strip(), num_sections, subs),
+                    label="generating script",
+                )
+                st.rerun()
 
     # -- Full pipeline --
-    if full_btn:
+    if full_btn and not _task_active:
         if not topic.strip():
             st.error("enter a topic")
         else:
             config = _build_config()
             if _check_creds():
-                st.session_state.config = config
+                subs = _parse_subtitles()
+                if subs:
+                    _log(f"subtitles: {subs}")
                 _log("starting full pipeline...")
-                with st.status("running full pipeline...", expanded=True) as status:
-                    try:
-                        subs = _parse_subtitles()
-                        if subs:
-                            _log(f"subtitles: {subs}")
-                        st.write("generating script...")
-                        script = asyncio.run(generate_script(config, topic.strip(), num_sections, subtitles=subs))
-                        run_dir = _create_run_dir()
-                        save_script(script, run_dir)
-                        st.session_state.script = script
-                        st.session_state.run_dir = run_dir
-                        _log(f"script saved: {run_dir.name}")
-
-                        st.write("generating voice + images...")
-                        _log("generating assets...")
-                        script = asyncio.run(generate_assets(config, script, run_dir))
-                        st.session_state.script = script
-                        save_script(script, run_dir)
-
-                        st.write("encoding video (this may take several minutes)...")
-                        _log("assembling video...")
-                        video_path = assemble_video(config, script, run_dir)
-                        st.session_state.stage = "video_done"
-                        _log(f"pipeline complete: {video_path}")
-
-                        status.update(label="pipeline complete", state="complete")
-                        st.rerun()
-                    except Exception as e:
-                        _log(f"PIPELINE ERROR: {e}")
-                        status.update(label="pipeline failed", state="error")
-                        st.error(f"pipeline failed: {e}")
+                st.session_state.config = config
+                st.session_state.task = start_task(
+                    bg_full_pipeline,
+                    args=(config, topic.strip(), num_sections, subs),
+                    label="full pipeline",
+                )
+                st.rerun()
 
     # -- Script editor --
     if st.session_state.script is not None:
         script: Script = st.session_state.script
         st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
-        st.markdown(f"**{script.title}** / {len(script.sections)} sections")
 
-        st.markdown('<p class="label">edit script</p>', unsafe_allow_html=True)
-        new_intro = st.text_area("intro", value=script.intro_narration, key="ed_intro", height=70)
+        with st.expander(f"**{script.title}** — {len(script.sections)} sections", expanded=False):
+            new_intro = st.text_area("intro", value=script.intro_narration, key="ed_intro", height=60)
 
-        edited_sections = []
-        for i, sec in enumerate(script.sections):
-            st.markdown(f"**{sec.number}. {sec.heading}**")
-            new_heading = st.text_input("heading", value=sec.heading, key=f"h_{i}", label_visibility="collapsed")
-            lc, rc = st.columns(2)
-            with lc:
-                new_narr = st.text_area("narration", value=sec.narration, key=f"n_{i}", height=90, label_visibility="collapsed")
-            with rc:
-                new_img = st.text_area("image prompt", value=sec.image_prompt, key=f"ip_{i}", height=90, label_visibility="collapsed")
-            edited_sections.append(
-                Section(
-                    number=sec.number, heading=new_heading, narration=new_narr,
-                    image_prompt=new_img, audio_path=sec.audio_path,
-                    image_path=sec.image_path, duration=sec.duration,
+            edited_sections = []
+            for i, sec in enumerate(script.sections):
+                new_heading = st.text_input(f"{sec.number}.", value=sec.heading, key=f"h_{i}")
+                lc, rc = st.columns(2)
+                with lc:
+                    new_narr = st.text_area("narration", value=sec.narration, key=f"n_{i}", height=70, label_visibility="collapsed")
+                with rc:
+                    new_img = st.text_area("image prompt", value=sec.image_prompt, key=f"ip_{i}", height=70, label_visibility="collapsed")
+                edited_sections.append(
+                    Section(
+                        number=sec.number, heading=new_heading, narration=new_narr,
+                        image_prompt=new_img, audio_path=sec.audio_path,
+                        image_path=sec.image_path, duration=sec.duration,
+                    )
                 )
-            )
 
-        new_outro = st.text_area("outro", value=script.outro_narration, key="ed_outro", height=70)
+            new_outro = st.text_area("outro", value=script.outro_narration, key="ed_outro", height=60)
 
-        if st.button("save edits", use_container_width=True):
-            st.session_state.script = Script(
-                title=script.title, intro_narration=new_intro,
-                sections=edited_sections, outro_narration=new_outro,
-                intro_audio_path=script.intro_audio_path,
-                outro_audio_path=script.outro_audio_path,
-                intro_duration=script.intro_duration,
-                outro_duration=script.outro_duration,
-            )
-            save_script(st.session_state.script, st.session_state.run_dir)
-            _log("script edits saved")
-            st.success("saved")
+            if st.button("save edits", use_container_width=True):
+                st.session_state.script = Script(
+                    title=script.title, intro_narration=new_intro,
+                    sections=edited_sections, outro_narration=new_outro,
+                    intro_audio_path=script.intro_audio_path,
+                    outro_audio_path=script.outro_audio_path,
+                    intro_duration=script.intro_duration,
+                    outro_duration=script.outro_duration,
+                )
+                save_script(st.session_state.script, st.session_state.run_dir)
+                _log("script edits saved")
+                st.success("saved")
 
     # -- Assets --
     if st.session_state.stage in ("scripted", "assets_done", "video_done"):
         st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
+        if st.session_state.stage in ("assets_done", "video_done"):
+            _script = st.session_state.script
+            _run_dir = Path(st.session_state.run_dir).resolve()
+            _missing = [
+                s for s in _script.sections
+                if not s.audio_path or not Path(s.audio_path).exists()
+                or not s.image_path or not Path(s.image_path).exists()
+            ]
+            if _missing:
+                st.warning(f"{len(_missing)} section(s) missing audio or images: {', '.join(str(s.number) for s in _missing)}")
+                if st.button("retry missing assets", use_container_width=True, disabled=_task_active) and not _task_active:
+                    config = _build_config()
+                    st.session_state.config = config
+                    _log(f"retrying assets for {len(_missing)} section(s)...")
+                    st.session_state.task = start_task(
+                        bg_gen_assets,
+                        args=(config, st.session_state.script, _run_dir),
+                        label="retrying missing assets",
+                    )
+                    st.rerun()
         if st.session_state.stage == "scripted":
-            if st.button("generate assets", use_container_width=True):
+            if st.button("generate assets", use_container_width=True, disabled=_task_active) and not _task_active:
                 config = _build_config()
                 st.session_state.config = config
                 _log("generating assets...")
-                with st.status("generating voice + images...", expanded=True) as status:
-                    try:
-                        script = asyncio.run(
-                            generate_assets(config, st.session_state.script, st.session_state.run_dir)
-                        )
-                        st.session_state.script = script
-                        st.session_state.stage = "assets_done"
-                        save_script(script, st.session_state.run_dir)
-                        _log("assets ready")
-                        status.update(label="assets done", state="complete")
-                        st.rerun()
-                    except Exception as e:
-                        _log(f"ASSET ERROR: {e}")
-                        status.update(label="failed", state="error")
-                        st.error(f"failed: {e}")
+                st.session_state.task = start_task(
+                    bg_gen_assets,
+                    args=(config, st.session_state.script, st.session_state.run_dir),
+                    label="generating assets",
+                )
+                st.rerun()
 
     if st.session_state.stage in ("assets_done", "video_done"):
         script = st.session_state.script
         run_dir = Path(st.session_state.run_dir).resolve()
 
-        st.markdown('<p class="label">preview assets</p>', unsafe_allow_html=True)
-        intro_audio = run_dir / "audio" / "intro.mp3"
-        if intro_audio.exists():
-            st.caption("intro")
-            st.audio(str(intro_audio))
+        with st.expander("preview assets", expanded=True):
+            # -- helper to render an image row --
+            def _asset_row(label, audio_path, img_path_resolved, img_save_path, retry_prompt, key_prefix,
+                           section_number=None, section_prompts=None):
+                c_img, c_aud, c_act = st.columns([3, 2, 1])
+                with c_img:
+                    st.caption(label)
+                    if img_path_resolved:
+                        st.image(str(img_path_resolved), use_container_width=True)
+                    else:
+                        st.caption("no image")
+                with c_aud:
+                    if audio_path and audio_path.exists():
+                        st.audio(str(audio_path))
+                with c_act:
+                    if st.button("retry", key=f"retry_{key_prefix}", use_container_width=True, disabled=_task_active):
+                        config = _build_config()
+                        if _check_creds() and retry_prompt:
+                            if section_number is not None and section_prompts:
+                                _log(f"retrying {len(section_prompts)} image(s) for section {section_number}...")
+                                images_dir = run_dir / "images"
+                                st.session_state.task = start_task(
+                                    bg_retry_section,
+                                    args=(config, section_prompts, section_number, images_dir),
+                                    label=f"retrying section {section_number}",
+                                )
+                                st.rerun()
+                            else:
+                                from src.bg_wrappers import bg_retry_single
+                                _log(f"retrying {label} image...")
+                                img_save_path.parent.mkdir(parents=True, exist_ok=True)
+                                st.session_state.task = start_task(
+                                    bg_retry_single,
+                                    args=(config, retry_prompt, img_save_path),
+                                    label=f"retrying {label}",
+                                )
+                                st.rerun()
+                    uploaded = st.file_uploader(
+                        "upload", type=["png", "jpg", "jpeg", "webp"],
+                        key=f"upload_{key_prefix}", label_visibility="collapsed",
+                    )
+                    if uploaded is not None:
+                        img_save_path.parent.mkdir(parents=True, exist_ok=True)
+                        img = PILImage.open(uploaded).convert("RGB")
+                        img.save(str(img_save_path), "PNG")
+                        save_script(st.session_state.script, run_dir)
+                        _log(f"uploaded {label} image")
+                        st.rerun()
 
-        for sec in script.sections:
-            st.markdown(f"**{sec.number}. {sec.heading}**")
-            # Find image: try script path, then discover from run_dir
-            img_file = None
-            if sec.image_path and Path(sec.image_path).resolve().exists():
-                img_file = Path(sec.image_path).resolve()
-            else:
-                candidate = run_dir / "images" / f"section_{sec.number:02d}.png"
-                if candidate.exists():
-                    img_file = candidate
-            # Find audio: try script path, then discover from run_dir
-            aud_file = None
-            if sec.audio_path and Path(sec.audio_path).resolve().exists():
-                aud_file = Path(sec.audio_path).resolve()
-            else:
-                candidate = run_dir / "audio" / f"section_{sec.number:02d}.mp3"
-                if candidate.exists():
-                    aud_file = candidate
+            # -- Intro --
+            intro_audio = run_dir / "audio" / "intro.mp3"
+            intro_img_path = run_dir / "images" / "intro.png"
+            intro_img_file = None
+            if script.intro_image_path and Path(script.intro_image_path).resolve().exists():
+                intro_img_file = Path(script.intro_image_path).resolve()
+            elif intro_img_path.exists():
+                intro_img_file = intro_img_path
+            intro_prompt = script.intro_image_prompt or f"Cinematic wide shot representing: {script.title}, dramatic lighting, high detail, 16:9"
+            _asset_row("intro", intro_audio, intro_img_file, intro_img_path, intro_prompt, "intro_img")
+            if intro_img_file and not script.intro_image_path:
+                script.intro_image_path = intro_img_path
 
-            lc, rc = st.columns([2, 1])
-            with lc:
+            # -- Sections --
+            for sec in script.sections:
+                # Primary image
+                img_file = None
+                if sec.image_path and Path(sec.image_path).resolve().exists():
+                    img_file = Path(sec.image_path).resolve()
+                else:
+                    candidate = run_dir / "images" / f"section_{sec.number:02d}.png"
+                    if candidate.exists():
+                        img_file = candidate
+                aud_file = None
+                if sec.audio_path and Path(sec.audio_path).resolve().exists():
+                    aud_file = Path(sec.audio_path).resolve()
+                else:
+                    candidate = run_dir / "audio" / f"section_{sec.number:02d}.mp3"
+                    if candidate.exists():
+                        aud_file = candidate
+                target_path = run_dir / "images" / f"section_{sec.number:02d}.png"
+                sec_prompts = sec.image_prompts if sec.image_prompts else [sec.image_prompt]
+                _asset_row(
+                    f"{sec.number}. {sec.heading}",
+                    Path(aud_file) if aud_file else None,
+                    img_file, target_path,
+                    sec.image_prompt, f"img_{sec.number}",
+                    section_number=sec.number, section_prompts=sec_prompts,
+                )
                 if img_file:
-                    st.image(str(img_file), use_container_width=True)
-            with rc:
+                    sec.image_path = target_path
                 if aud_file:
-                    st.audio(str(aud_file))
-                if sec.duration:
-                    st.caption(f"{sec.duration:.1f}s")
+                    sec.audio_path = aud_file
 
-        outro_audio = run_dir / "audio" / "outro.mp3"
-        if outro_audio.exists():
-            st.caption("outro")
-            st.audio(str(outro_audio))
+                # Extra images (multi-image)
+                extra_paths = sec.image_paths[1:] if len(sec.image_paths) > 1 else []
+                if not extra_paths:
+                    # Discover from disk
+                    for suffix in ["_b", "_c", "_d", "_e"]:
+                        p = run_dir / "images" / f"section_{sec.number:02d}{suffix}.png"
+                        if p.exists():
+                            extra_paths.append(p)
+                if extra_paths:
+                    cols = st.columns(len(extra_paths))
+                    for ci, ep in enumerate(extra_paths):
+                        ep = Path(ep)
+                        if ep.exists():
+                            with cols[ci]:
+                                st.image(str(ep), width=120)
+
+            # -- Outro --
+            outro_audio = run_dir / "audio" / "outro.mp3"
+            outro_img_path = run_dir / "images" / "outro.png"
+            outro_img_file = None
+            if script.outro_image_path and Path(script.outro_image_path).resolve().exists():
+                outro_img_file = Path(script.outro_image_path).resolve()
+            elif outro_img_path.exists():
+                outro_img_file = outro_img_path
+            outro_prompt = script.outro_image_prompt or f"Cinematic closing shot for a video about: {script.title}, warm lighting, high detail, 16:9"
+            _asset_row("outro", outro_audio, outro_img_file, outro_img_path, outro_prompt, "outro_img")
+            if outro_img_file and not script.outro_image_path:
+                script.outro_image_path = outro_img_path
 
     # -- Video --
-    if st.session_state.stage == "assets_done":
+    if st.session_state.stage in ("assets_done", "video_done"):
         st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
-        if st.button("assemble video", type="primary", use_container_width=True):
+        assemble_btn = st.button(
+            "assemble video" if st.session_state.stage == "assets_done" else "reassemble video",
+            type="primary", use_container_width=True, disabled=_task_active,
+        )
+
+        encode_trigger = assemble_btn
+        if encode_trigger and not _task_active:
             config = _build_config()
             _log("assembling video (encoding may take several minutes)...")
-            with st.status("encoding video (this may take several minutes)...", expanded=True) as status:
-                try:
-                    st.write("building clips...")
-                    video_path = assemble_video(config, st.session_state.script, st.session_state.run_dir)
-                    st.session_state.stage = "video_done"
-                    _log(f"video done: {video_path}")
-                    status.update(label="video done", state="complete")
-                    st.rerun()
-                except Exception as e:
-                    _log(f"VIDEO ERROR: {e}")
-                    status.update(label="encoding failed", state="error")
-                    st.error(f"failed: {e}")
-
-    if st.session_state.stage in ("assets_done", "video_done"):
-        if st.button("reassemble video", use_container_width=True):
-            config = _build_config()
-            _log("reassembling video...")
-            with st.status("encoding video (this may take several minutes)...", expanded=True) as status:
-                try:
-                    st.write("building clips...")
-                    video_path = assemble_video(config, st.session_state.script, st.session_state.run_dir)
-                    st.session_state.stage = "video_done"
-                    _log(f"video done: {video_path}")
-                    status.update(label="video done", state="complete")
-                    st.rerun()
-                except Exception as e:
-                    _log(f"VIDEO ERROR: {e}")
-                    status.update(label="encoding failed", state="error")
-                    st.error(f"failed: {e}")
+            st.session_state.task = start_task(
+                bg_assemble,
+                args=(config, st.session_state.script, Path(st.session_state.run_dir)),
+                label="encoding video",
+            )
+            st.rerun()
 
     if st.session_state.stage == "video_done":
         run_dir = st.session_state.run_dir
         video_file = run_dir / "final_video.mp4"
 
         if video_file.exists():
-            st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
             st.video(str(video_file))
-
-            with open(video_file, "rb") as f:
-                st.download_button(
-                    "download .mp4", data=f,
-                    file_name=f"{st.session_state.script.title}.mp4",
-                    mime="video/mp4", use_container_width=True,
-                )
-
             file_mb = video_file.stat().st_size / (1024 * 1024)
             sc = st.session_state.script
-            m1, m2, m3 = st.columns(3)
+            m1, m2, m3, m4 = st.columns(4)
             with m1:
-                st.markdown(
-                    f'<div class="metric"><div class="val">{len(sc.sections)}</div><div class="lbl">sections</div></div>',
-                    unsafe_allow_html=True,
-                )
+                st.markdown(f'<div class="metric"><div class="val">{len(sc.sections)}</div><div class="lbl">sections</div></div>', unsafe_allow_html=True)
             with m2:
-                st.markdown(
-                    f'<div class="metric"><div class="val">{file_mb:.1f} mb</div><div class="lbl">file size</div></div>',
-                    unsafe_allow_html=True,
-                )
+                st.markdown(f'<div class="metric"><div class="val">{file_mb:.1f} mb</div><div class="lbl">size</div></div>', unsafe_allow_html=True)
             with m3:
-                st.markdown(
-                    f'<div class="metric"><div class="val">{run_dir.name}</div><div class="lbl">run id</div></div>',
-                    unsafe_allow_html=True,
-                )
+                st.markdown(f'<div class="metric"><div class="val">{run_dir.name[-6:]}</div><div class="lbl">run</div></div>', unsafe_allow_html=True)
+            with m4:
+                with open(video_file, "rb") as f:
+                    st.download_button("download", data=f, file_name=f"{sc.title}.mp4", mime="video/mp4", use_container_width=True)
 
     # -- Load previous run --
     st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
     prev_runs = _find_previous_runs()
     if prev_runs:
-        st.markdown('<p class="label">load previous run</p>', unsafe_allow_html=True)
+        lr_sel, lr_btn = st.columns([3, 1])
         run_labels = {str(p): p.parent.name for p in prev_runs}
-        selected_run = st.selectbox(
-            "select run", options=[str(p) for p in prev_runs],
-            format_func=lambda x: run_labels.get(x, x),
-            key="prev_run_sel", label_visibility="collapsed",
-        )
-        if st.button("load run", use_container_width=True):
+        with lr_sel:
+            selected_run = st.selectbox(
+                "run", options=[str(p) for p in prev_runs],
+                format_func=lambda x: run_labels.get(x, x),
+                key="prev_run_sel", label_visibility="collapsed",
+            )
+        with lr_btn:
+            load_btn = st.button("load", use_container_width=True)
+        if load_btn:
             if not selected_run:
                 st.error("select a run first")
             else:
@@ -689,13 +853,3 @@ with main_col:
                 except Exception as e:
                     st.error(f"failed: {e}")
 
-# ===== RENDER LOGS =====
-with log_col:
-    if st.session_state.logs:
-        log_text = "\n".join(st.session_state.logs)
-        log_placeholder.code(log_text, language=None)
-    else:
-        log_placeholder.markdown(
-            '<span style="color:#444;font-size:0.75rem;">no logs yet</span>',
-            unsafe_allow_html=True,
-        )

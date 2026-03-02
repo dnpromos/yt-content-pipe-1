@@ -18,8 +18,7 @@ env/
 *.swo
 
 # Project
-output/_debug/
-output/*/final_video.mp4
+output/
 config.yaml
 .env
 

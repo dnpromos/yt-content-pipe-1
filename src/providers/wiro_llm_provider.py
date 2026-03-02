@@ -122,28 +122,38 @@ Image prompts should be one detailed sentence each."""
 
 USER_PROMPT_TEMPLATE = """\
 Create a listicle script about: "{topic}"
-
+{style_instruction}
 Return ONLY this JSON (no other text):
 {{
   "title": "catchy video title",
   "intro_narration": "4-5 sentences that hook the viewer, set the stage, and tease what's coming",
+  "intro_image_prompt": "YouTube thumbnail: bold large text reading the video title, vibrant colors, dramatic imagery, high contrast, eye-catching, 16:9",
   "sections": [
     {{
       "number": 1,
       "heading": "section heading",
-      "narration": "5-7 sentences with interesting facts, details, and smooth transitions",
-      "image_prompt": "detailed image description, cinematic lighting, high quality"
+      "narration": "Start with 'Number One, heading!' then 5-7 sentences with interesting facts, details, and smooth transitions",
+      "image_prompts": [
+        "FIRST image: detailed image with bold text overlay reading the section heading in the center, cinematic lighting, high quality",
+        "SECOND image: different angle or perspective of the same subject, NO TEXT, purely visual, cinematic"
+      ]
     }}
   ],
-  "outro_narration": "2-3 sentences wrapping up with a call to action"
+  "outro_narration": "2-3 sentences wrapping up with a call to action",
+  "outro_image_prompt": "cinematic image relevant to the video topic with a semi-transparent subscribe button and like/thumbs-up button overlaid in the bottom corner, 16:9"
 }}
 
 Rules:
 - Exactly {num_sections} sections
 - intro_narration: 4-5 engaging sentences that hook the viewer
-- Each section narration: 5-7 detailed sentences, conversational tone
-- image_prompt is REQUIRED for every section
+- intro_image_prompt: must look like a YouTube thumbnail with the video title as bold readable text embedded in the image
+- Each section narration MUST begin with announcing the number and heading like "Number One, FlowState AI!" or "Number Three, CodeWhisper Pro!" followed by 5-7 detailed sentences, conversational tone
+- image_prompts: REQUIRED array of exactly {images_per_section} prompts per section
+  - The FIRST prompt MUST include bold readable text overlay of the section heading
+  - All OTHER prompts must be different angles, views, or perspectives of the same subject with NO TEXT, purely visual imagery
+  - Each prompt must be unique and strictly relevant to the section topic
 - outro_narration: 2-3 sentences with call to action
+- outro_image_prompt: must be a visually striking image RELEVANT to the video topic, with subscribe and like/thumbs-up buttons overlaid naturally in a corner — NOT a generic end screen
 - All narration should sound natural when spoken aloud"""
 
 SUBTITLES_ADDENDUM = """
@@ -179,9 +189,15 @@ class WiroLLMProvider(LLMProvider):
 
     async def generate_script(
         self, topic: str, num_sections: int, subtitles: list[str] | None = None,
+        image_style: str = "", images_per_section: int = 1,
     ) -> Script:
+        style_instruction = ""
+        if image_style:
+            style_instruction = f'\nAll image prompts must be in "{image_style}" style. Append ", {image_style} style" to every image_prompt.\n'
         user_prompt = USER_PROMPT_TEMPLATE.format(
-            topic=topic, num_sections=num_sections
+            topic=topic, num_sections=num_sections,
+            style_instruction=style_instruction,
+            images_per_section=max(1, images_per_section),
         )
         if subtitles:
             numbered = "\n".join(f"{i+1}. {s}" for i, s in enumerate(subtitles))
@@ -223,13 +239,34 @@ class WiroLLMProvider(LLMProvider):
                     s = {k.strip(): v for k, v in raw_s.items()}
                     if not s.get("heading"):
                         s["heading"] = f"Section {s.get('number', len(sections) + 1)}"
-                    if not s.get("image_prompt"):
+                    # LLM sometimes uses variant key names for narration
+                    if not s.get("narration"):
+                        for alt in ("script", "text", "content", "description", "body"):
+                            if s.get(alt):
+                                s["narration"] = s.pop(alt)
+                                break
+                        else:
+                            s["narration"] = f"Let's talk about {s.get('heading', 'this topic')}."
+                    # Handle image_prompts array or fallback from singular image_prompt
+                    prompts = s.get("image_prompts", [])
+                    if isinstance(prompts, str):
+                        prompts = [prompts]
+                    if not prompts and s.get("image_prompt"):
+                        prompts = [s["image_prompt"]]
+                    if not prompts:
                         heading = s.get("heading", "")
-                        s["image_prompt"] = (
+                        prompts = [
                             f"Cinematic illustration of: {heading}, "
+                            f"with bold text overlay reading '{heading}', "
                             f"dramatic lighting, high detail, 16:9"
-                        )
-                    sections.append(Section(**s))
+                        ]
+                    sections.append(Section(
+                        number=s.get("number", len(sections) + 1),
+                        heading=s["heading"],
+                        narration=s["narration"],
+                        image_prompt=prompts[0],
+                        image_prompts=prompts,
+                    ))
 
                 outro = data.get("outro_narration", "")
                 if not outro or len(outro) < 20:
@@ -239,11 +276,20 @@ class WiroLLMProvider(LLMProvider):
                         f"so you never miss out on our next one. See you in the next video!"
                     )
 
+                intro_img = data.get("intro_image_prompt", "")
+                if not intro_img:
+                    intro_img = f"Cinematic wide shot representing: {data.get('title', topic)}, dramatic lighting, high detail, 16:9"
+                outro_img = data.get("outro_image_prompt", "")
+                if not outro_img:
+                    outro_img = f"Cinematic closing shot for a video about: {data.get('title', topic)}, warm lighting, high detail, 16:9"
+
                 return Script(
                     title=data.get("title", topic),
                     intro_narration=data.get("intro_narration", ""),
+                    intro_image_prompt=intro_img,
                     sections=sections,
                     outro_narration=outro,
+                    outro_image_prompt=outro_img,
                 )
 
             except Exception as e:

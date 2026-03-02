@@ -15,6 +15,7 @@ class LLMProvider(abc.ABC):
     @abc.abstractmethod
     async def generate_script(
         self, topic: str, num_sections: int, subtitles: list[str] | None = None,
+        image_style: str = "", images_per_section: int = 1,
     ) -> Script:
         """Generate a structured listicle script for the given topic."""
         ...
