@@ -127,7 +127,7 @@ Return ONLY this JSON (no other text):
 {{
   "title": "catchy video title",
   "intro_narration": "4-5 sentences that hook the viewer, set the stage, and tease what's coming",
-  "intro_image_prompt": "YouTube thumbnail: bold large text reading the video title, vibrant colors, dramatic imagery, high contrast, eye-catching, 16:9",
+  "intro_image_prompt": "YouTube thumbnail: bold large text reading the video title centered in the middle of the image, vibrant colors, dramatic imagery, high contrast, eye-catching, 16:9",
   "sections": [
     {{
       "number": 1,
@@ -146,7 +146,7 @@ Return ONLY this JSON (no other text):
 Rules:
 - Exactly {num_sections} sections
 - intro_narration: 4-5 engaging sentences that hook the viewer
-- intro_image_prompt: must look like a YouTube thumbnail with the video title as bold readable text embedded in the image
+- intro_image_prompt: must look like a YouTube thumbnail with the video title as bold readable text centered in the middle of the image
 - Each section narration MUST begin with announcing the number and heading like "Number One, FlowState AI!" or "Number Three, CodeWhisper Pro!" followed by 5-7 detailed sentences, conversational tone
 - image_prompts: REQUIRED array of exactly {images_per_section} prompts per section
   - The FIRST prompt MUST include bold readable text overlay of the section heading
@@ -155,6 +155,47 @@ Rules:
 - outro_narration: 2-3 sentences with call to action
 - outro_image_prompt: must be a visually striking image RELEVANT to the video topic, with subscribe and like/thumbs-up buttons overlaid naturally in a corner — NOT a generic end screen
 - All narration should sound natural when spoken aloud"""
+
+CUSTOM_INSTRUCTIONS_TEMPLATE = """\
+Use the following custom instructions to write the script:
+
+--- CUSTOM INSTRUCTIONS ---
+{custom_instructions}
+--- END CUSTOM INSTRUCTIONS ---
+
+Topic: "{topic}"
+{style_instruction}
+You MUST output ONLY valid JSON in this exact format (no other text):
+{{
+  "title": "catchy video title",
+  "intro_narration": "4-5 sentences that hook the viewer, set the stage, and tease what's coming",
+  "intro_image_prompt": "YouTube thumbnail: bold large text reading the video title centered in the middle of the image, vibrant colors, dramatic imagery, high contrast, eye-catching, 16:9",
+  "sections": [
+    {{
+      "number": 1,
+      "heading": "section heading",
+      "narration": "Start with 'Number One, heading!' then 5-7 sentences with interesting facts, details, and smooth transitions",
+      "image_prompts": [
+        "FIRST image: detailed image with bold text overlay reading the section heading in the center, cinematic lighting, high quality",
+        "SECOND image: different angle or perspective of the same subject, NO TEXT, purely visual, cinematic"
+      ]
+    }}
+  ],
+  "outro_narration": "2-3 sentences wrapping up with a call to action",
+  "outro_image_prompt": "cinematic image relevant to the video topic with subscribe and like buttons overlaid in the corner, 16:9"
+}}
+
+Rules:
+- Exactly {num_sections} sections
+- intro_narration: 4-5 engaging sentences that hook the viewer
+- intro_image_prompt: must look like a YouTube thumbnail with the video title as bold readable text centered in the middle of the image
+- Each section narration MUST begin with announcing the number and heading followed by 5-7 detailed sentences
+- image_prompts: REQUIRED array of exactly {images_per_section} prompts per section
+  - The FIRST prompt MUST include bold readable text overlay of the section heading
+  - All OTHER prompts must be different angles with NO TEXT, purely visual
+- outro_narration: 2-3 sentences with call to action
+- All narration should sound natural when spoken aloud
+- Follow the custom instructions above for content, tone, and structure — but always output the JSON format specified"""
 
 SUBTITLES_ADDENDUM = """
 
@@ -190,15 +231,26 @@ class WiroLLMProvider(LLMProvider):
     async def generate_script(
         self, topic: str, num_sections: int, subtitles: list[str] | None = None,
         image_style: str = "", images_per_section: int = 1,
+        custom_instructions: str = "",
     ) -> Script:
         style_instruction = ""
         if image_style:
             style_instruction = f'\nAll image prompts must be in "{image_style}" style. Append ", {image_style} style" to every image_prompt.\n'
-        user_prompt = USER_PROMPT_TEMPLATE.format(
-            topic=topic, num_sections=num_sections,
-            style_instruction=style_instruction,
-            images_per_section=max(1, images_per_section),
-        )
+
+        if custom_instructions:
+            user_prompt = CUSTOM_INSTRUCTIONS_TEMPLATE.format(
+                custom_instructions=custom_instructions,
+                topic=topic,
+                num_sections=num_sections,
+                style_instruction=style_instruction,
+                images_per_section=max(1, images_per_section),
+            )
+        else:
+            user_prompt = USER_PROMPT_TEMPLATE.format(
+                topic=topic, num_sections=num_sections,
+                style_instruction=style_instruction,
+                images_per_section=max(1, images_per_section),
+            )
         if subtitles:
             numbered = "\n".join(f"{i+1}. {s}" for i, s in enumerate(subtitles))
             user_prompt += SUBTITLES_ADDENDUM.format(subtitles=numbered)

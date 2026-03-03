@@ -524,9 +524,21 @@ with main_col:
         key="subtitles", label_visibility="collapsed", height=68,
     )
 
+    custom_instructions_on = st.toggle("custom instructions", value=False, key="custom_instr_on")
+    custom_instructions_text = ""
+    if custom_instructions_on:
+        custom_instructions_text = st.text_area(
+            "custom instructions", key="custom_instr",
+            placeholder="e.g. Write the script based on this article: ...\nOr: Focus on beginner-friendly explanations, keep each section under 30 seconds...",
+            label_visibility="collapsed", height=120,
+        )
+
     def _parse_subtitles() -> list[str] | None:
         lines = [l.strip() for l in subtitles_raw.strip().splitlines() if l.strip()]
         return lines if lines else None
+
+    def _get_custom_instructions() -> str:
+        return custom_instructions_text.strip() if custom_instructions_on else ""
 
     _task_active = st.session_state.task is not None and (st.session_state.task.running or not st.session_state.task.done)
 
@@ -548,11 +560,14 @@ with main_col:
                 subs = _parse_subtitles()
                 if subs:
                     _log(f"subtitles: {subs}")
+                ci = _get_custom_instructions()
+                if ci:
+                    _log("using custom instructions")
                 _log("starting script generation...")
                 st.session_state.config = config
                 st.session_state.task = start_task(
                     bg_gen_script,
-                    args=(config, topic.strip(), num_sections, subs),
+                    args=(config, topic.strip(), num_sections, subs, ci),
                     label="generating script",
                 )
                 st.rerun()
@@ -567,11 +582,14 @@ with main_col:
                 subs = _parse_subtitles()
                 if subs:
                     _log(f"subtitles: {subs}")
+                ci = _get_custom_instructions()
+                if ci:
+                    _log("using custom instructions")
                 _log("starting full pipeline...")
                 st.session_state.config = config
                 st.session_state.task = start_task(
                     bg_full_pipeline,
-                    args=(config, topic.strip(), num_sections, subs),
+                    args=(config, topic.strip(), num_sections, subs, ci),
                     label="full pipeline",
                 )
                 st.rerun()

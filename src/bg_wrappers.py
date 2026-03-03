@@ -14,9 +14,9 @@ from src.pipeline import (
 )
 
 
-async def bg_gen_script(config, topic, num_sections, subs):
+async def bg_gen_script(config, topic, num_sections, subs, custom_instructions=""):
     """Generate script only."""
-    script = await generate_script(config, topic, num_sections, subtitles=subs)
+    script = await generate_script(config, topic, num_sections, subtitles=subs, custom_instructions=custom_instructions)
     run_dir = _create_run_dir()
     save_script(script, run_dir)
     return {"type": "gen_script", "script": script, "run_dir": run_dir}
@@ -29,9 +29,9 @@ async def bg_gen_assets(config, script, run_dir):
     return {"type": "gen_assets", "script": script}
 
 
-async def bg_full_pipeline(config, topic, num_sections, subs):
+async def bg_full_pipeline(config, topic, num_sections, subs, custom_instructions=""):
     """Full pipeline: script -> assets -> video."""
-    script = await generate_script(config, topic, num_sections, subtitles=subs)
+    script = await generate_script(config, topic, num_sections, subtitles=subs, custom_instructions=custom_instructions)
     run_dir = _create_run_dir()
     save_script(script, run_dir)
     script = await generate_assets(config, script, run_dir)

@@ -120,6 +120,7 @@ async def regenerate_section_images(
 async def generate_script(
     config: AppConfig, topic: str, num_sections: int,
     subtitles: list[str] | None = None,
+    custom_instructions: str = "",
 ) -> Script:
     """Step 1: Generate the listicle script via LLM."""
     log("step 1/4: generating script...")
@@ -130,6 +131,7 @@ async def generate_script(
     script = await llm.generate_script(
         topic, num_sections, subtitles=subtitles,
         image_style=image_style, images_per_section=images_per_section,
+        custom_instructions=custom_instructions,
     )
     log(f"script done: '{script.title}' ({len(script.sections)} sections)")
     console.print(f"Script generated: '{script.title}'")
