@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Thank You — Clipmatic</title>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RYFP5PD588"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RYFP5PD588');
+    gtag('event', 'purchase', {
+      transaction_id: Date.now().toString(),
+      value: 79.00,
+      currency: 'USD',
+      items: [{ item_name: 'clipmatic', price: 79.00, quantity: 1 }]
+    });
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0a0a0a; color: #e5e5e5;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      -webkit-font-smoothing: antialiased;
+    }
+    .card {
+      max-width: 520px; width: 90%; text-align: center; padding: 48px 36px;
+      background: #141414; border: 1px solid #262626; border-radius: 24px;
+      box-shadow: 0 25px 60px rgba(0,0,0,.5);
+    }
+    .icon { font-size: 56px; margin-bottom: 20px; }
+    h1 { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 12px; }
+    h1 span { background: linear-gradient(135deg, #818cf8, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    p { font-size: 15px; color: #a3a3a3; line-height: 1.7; margin-bottom: 16px; }
+    .highlight-box {
+      background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.2);
+      border-radius: 12px; padding: 16px 20px; margin: 24px 0;
+    }
+    .highlight-box p { color: #c4b5fd; margin: 0; font-size: 14px; }
+    .highlight-box strong { color: #e5e5e5; }
+    .steps { text-align: left; margin: 24px 0; }
+    .steps h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #737373; margin-bottom: 12px; }
+    .steps ol { list-style: none; counter-reset: steps; }
+    .steps ol li {
+      counter-increment: steps; padding: 8px 0; font-size: 14px; color: #a3a3a3;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .steps ol li::before {
+      content: counter(steps); flex-shrink: 0;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #1c1c1c; border: 1px solid #262626;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #818cf8;
+    }
+    .divider { height: 1px; background: #262626; margin: 24px 0; }
+    .support { font-size: 13px; color: #525252; }
+    .support a { color: #818cf8; text-decoration: none; }
+    .support a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🎉</div>
+    <h1>Thank you for your <span>purchase!</span></h1>
+    <p>Your order has been confirmed. All the details — including setup instructions, download link, and your license key — will be sent to your <strong style="color:#e5e5e5;">payment email address</strong> shortly.</p>
+
+    <div class="highlight-box">
+      <p>Check your inbox (and spam folder) for an email from us within the next few minutes.</p>
+    </div>
+
+    <div class="steps">
+      <h3>What happens next</h3>
+      <ol>
+        <li>You'll receive an email with your download link and setup guide</li>
+        <li>Clone the repo and follow the 5-minute setup instructions</li>
+        <li>Add your API keys and start generating videos</li>
+      </ol>
+    </div>
+
+    <div class="divider"></div>
+    <p class="support">Didn't receive the email? Contact us at <a href="mailto:info@arsprogrammatica.com">info@arsprogrammatica.com</a></p>
+  </div>
+</body>
+</html>

@@ -20,7 +20,16 @@ env/
 # Project
 output/
 config.yaml
+ui_config.json
 .env
+
+# Web frontend
+web/node_modules/
+web/dist/
+
+# Tauri / Rust
+web/src-tauri/target/
+web/src-tauri/binaries/
 
 # Temp
 *TEMP_MPY*

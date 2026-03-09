@@ -26,6 +26,9 @@ RUNNING_STATUSES = {
 POLL_INTERVAL = 2.0
 MAX_POLL_ATTEMPTS = 300
 
+# Global set of active Wiro task IDs for kill-all support
+active_wiro_tasks: set[str] = set()
+
 
 class WiroClient:
     """Shared Wiro API client with HMAC-SHA256 auth, task submission, and polling."""
@@ -134,7 +137,38 @@ class WiroClient:
         """Submit a task and poll until completion. Returns the completed task dict."""
         run_resp = await self.submit_task(run_url, payload)
         task_id = run_resp["taskid"]
-        return await self.poll_task(task_id)
+        active_wiro_tasks.add(task_id)
+        try:
+            return await self.poll_task(task_id)
+        finally:
+            active_wiro_tasks.discard(task_id)
+
+    async def cancel_task(self, task_id: str) -> bool:
+        """Cancel a single Wiro task."""
+        try:
+            headers = self._make_headers()
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.post(
+                    "https://api.wiro.ai/v1/Task/Cancel",
+                    headers=headers,
+                    json={"taskid": task_id},
+                )
+                resp.raise_for_status()
+            log(f"cancelled task {task_id[:8]}...")
+            return True
+        except Exception as e:
+            log(f"failed to cancel {task_id[:8]}...: {e}")
+            return False
+
+    async def cancel_all(self) -> int:
+        """Cancel all tracked active tasks."""
+        task_ids = list(active_wiro_tasks)
+        cancelled = 0
+        for tid in task_ids:
+            if await self.cancel_task(tid):
+                cancelled += 1
+            active_wiro_tasks.discard(tid)
+        return cancelled
 
     @staticmethod
     def get_output_urls(task: dict) -> list[str]:

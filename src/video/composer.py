@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import platform
 import time
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from moviepy import (
     ColorClip,
     CompositeVideoClip,
     ImageClip,
+    VideoFileClip,
     concatenate_videoclips,
 )
 from PIL import Image
@@ -17,7 +19,8 @@ from proglog import ProgressBarLogger
 from rich.console import Console
 
 from src.log import emit as log
-from src.models import Script, VideoConfig
+from src.models import CaptionSegment, Script, VideoConfig
+from src.video.captions import render_captions
 from src.video.effects import apply_ken_burns, resize_image_to_fill
 from src.video.text_overlay import (
     add_heading_overlay,
@@ -65,6 +68,7 @@ def _build_section_clip(
     number: int,
     config: VideoConfig,
     image_paths: list[Path] | None = None,
+    captions: list[CaptionSegment] | None = None,
 ) -> CompositeVideoClip:
     """Build a single section clip with one or more images and audio.
 
@@ -116,6 +120,79 @@ def _build_section_clip(
     audio = audio.with_start(0.5)
     clip = clip.with_audio(audio)
 
+    if captions and config.captions_enabled:
+        clip = render_captions(clip, captions, config, resolution, audio_offset=0.5)
+
+    return clip
+
+
+def _resize_video_to_fill(vid: VideoFileClip, resolution: tuple[int, int]):
+    """Resize and center-crop a video clip to fill target resolution."""
+    w, h = resolution
+    scale = max(w / vid.w, h / vid.h)
+    vid = vid.resized((int(vid.w * scale), int(vid.h * scale)))
+    vid = vid.cropped(
+        x_center=vid.w / 2, y_center=vid.h / 2,
+        width=w, height=h,
+    )
+    return vid
+
+
+def _build_video_section_clip(
+    video_path: Path,
+    audio_path: Path,
+    heading: str,
+    number: int,
+    config: VideoConfig,
+    video_paths: list[Path] | None = None,
+    captions: list[CaptionSegment] | None = None,
+) -> CompositeVideoClip:
+    """Build a section clip from one or more AI-generated video files with narration audio.
+
+    Multiple videos are joined with transitions to fill the narration duration.
+    If total video is shorter than narration, the last clip is looped.
+    """
+    resolution = tuple(config.resolution)
+    audio = AudioFileClip(str(audio_path))
+    total_duration = audio.duration + 1.0
+
+    # Gather valid video paths
+    paths = [p for p in (video_paths or []) if p and Path(p).exists()]
+    if not paths:
+        paths = [video_path]
+
+    # Load and resize all clips
+    sub_clips = []
+    for vp in paths:
+        v = VideoFileClip(str(vp))
+        v = _resize_video_to_fill(v, resolution)
+        v = v.without_audio()
+        sub_clips.append(v)
+
+    if len(sub_clips) == 1:
+        vid = sub_clips[0]
+        # Loop if too short
+        if vid.duration < total_duration:
+            loops_needed = int(total_duration / vid.duration) + 1
+            vid = concatenate_videoclips([vid] * loops_needed)
+        vid = vid.subclipped(0, total_duration)
+    else:
+        # Join multiple clips with transitions
+        trans_dur = min(config.transition_duration, 0.5)
+        vid = join_clips(sub_clips, config.transition, trans_dur)
+        # If combined is too short, loop the whole thing
+        if vid.duration < total_duration:
+            loops_needed = int(total_duration / vid.duration) + 1
+            vid = concatenate_videoclips([vid] * loops_needed)
+        vid = vid.subclipped(0, total_duration)
+
+    # Attach narration audio
+    audio = audio.with_start(0.5)
+    clip = vid.with_audio(audio)
+
+    if captions and config.captions_enabled:
+        clip = render_captions(clip, captions, config, resolution, audio_offset=0.5)
+
     return clip
 
 
@@ -125,6 +202,7 @@ def _build_narration_clip(
     config: VideoConfig,
     card_type: str = "intro",
     image_path: Path | None = None,
+    captions: list[CaptionSegment] | None = None,
 ) -> CompositeVideoClip:
     """Build an intro or outro clip with title card and narration.
 
@@ -134,6 +212,7 @@ def _build_narration_clip(
         config: Video configuration.
         card_type: "intro" or "outro".
         image_path: Optional background image. Uses title card if None.
+        captions: Optional caption segments for overlay.
 
     Returns:
         A video clip for the intro/outro.
@@ -143,16 +222,8 @@ def _build_narration_clip(
     duration = audio.duration + 1.5
 
     if image_path and image_path.exists():
-        if config.ken_burns:
-            clip = apply_ken_burns(
-                str(image_path),
-                duration=duration,
-                resolution=resolution,
-                direction="in" if card_type == "intro" else "out",
-            )
-        else:
-            clip = resize_image_to_fill(str(image_path), resolution)
-            clip = clip.with_duration(duration)
+        clip = resize_image_to_fill(str(image_path), resolution)
+        clip = clip.with_duration(duration)
     else:
         if card_type == "intro":
             bg_color = (15, 15, 25)
@@ -168,6 +239,9 @@ def _build_narration_clip(
 
     audio = audio.with_start(0.75)
     clip = clip.with_audio(audio)
+
+    if captions and config.captions_enabled:
+        clip = render_captions(clip, captions, config, resolution, audio_offset=0.75)
 
     return clip
 
@@ -194,19 +268,93 @@ def compose_video(
     # Intro
     if script.intro_audio_path and script.intro_audio_path.exists():
         log("building intro clip...")
-        intro = _build_narration_clip(
-            script.intro_audio_path,
-            script.title,
-            config,
-            card_type="intro",
-            image_path=script.intro_image_path,
-        )
+        intro_vids = [p for p in (script.intro_video_paths or []) if p and Path(p).exists()]
+        has_intro_image = script.intro_image_path and Path(script.intro_image_path).exists()
+
+        if intro_vids and has_intro_image:
+            # Dynamic intro: 3s title image + AI video clips for the rest
+            audio = AudioFileClip(str(script.intro_audio_path))
+            total_dur = audio.duration + 1.0
+            IMAGE_HOLD = 3.0
+
+            # Title image clip (3 seconds)
+            if config.ken_burns:
+                title_img = apply_ken_burns(str(script.intro_image_path), IMAGE_HOLD, resolution)
+            else:
+                title_img = resize_image_to_fill(str(script.intro_image_path), resolution)
+                title_img = title_img.with_duration(IMAGE_HOLD)
+
+            # Load and resize video clips
+            vid_clips = []
+            for vp in intro_vids:
+                v = VideoFileClip(str(vp))
+                v = _resize_video_to_fill(v, resolution)
+                v = v.without_audio()
+                vid_clips.append(v)
+
+            # Join video clips, loop/trim to fill remaining duration
+            remaining = total_dur - IMAGE_HOLD + config.transition_duration
+            if len(vid_clips) == 1:
+                vid_part = vid_clips[0]
+            else:
+                trans_dur = min(config.transition_duration, 0.5)
+                vid_part = join_clips(vid_clips, config.transition, trans_dur)
+            if vid_part.duration < remaining:
+                loops = int(remaining / vid_part.duration) + 1
+                vid_part = concatenate_videoclips([vid_part] * loops)
+            vid_part = vid_part.subclipped(0, remaining)
+
+            # Join title image + video clips with transition
+            intro = join_clips(
+                [title_img, vid_part], config.transition, config.transition_duration
+            )
+            intro = intro.subclipped(0, total_dur)
+            audio = audio.with_start(0.5)
+            intro = intro.with_audio(audio)
+            if script.intro_captions and config.captions_enabled:
+                intro = render_captions(intro, script.intro_captions, config, resolution, audio_offset=0.5)
+            log(f"intro: {IMAGE_HOLD}s image + {remaining:.1f}s video clips")
+        else:
+            # Fallback: image-only intro (multiple images or single)
+            intro_paths = [p for p in (script.intro_image_paths or []) if p and Path(p).exists()]
+            if has_intro_image:
+                main_intro = Path(script.intro_image_path)
+                if main_intro not in [Path(p) for p in intro_paths]:
+                    intro_paths.insert(0, main_intro)
+            if len(intro_paths) > 1:
+                audio = AudioFileClip(str(script.intro_audio_path))
+                total_dur = audio.duration + 1.5
+                n_imgs = len(intro_paths)
+                trans_dur = min(config.transition_duration, total_dur / n_imgs * 0.3)
+                per_img_dur = (total_dur + (n_imgs - 1) * trans_dur) / n_imgs
+                sub_clips = []
+                for ip in intro_paths:
+                    sc = resize_image_to_fill(str(ip), resolution)
+                    sc = sc.with_duration(per_img_dur)
+                    sub_clips.append(sc)
+                intro = join_clips(sub_clips, config.transition, trans_dur)
+                intro = intro.subclipped(0, total_dur)
+                audio = audio.with_start(0.75)
+                intro = intro.with_audio(audio)
+                if script.intro_captions and config.captions_enabled:
+                    intro = render_captions(intro, script.intro_captions, config, resolution, audio_offset=0.75)
+            else:
+                intro = _build_narration_clip(
+                    script.intro_audio_path,
+                    script.title,
+                    config,
+                    card_type="intro",
+                    image_path=script.intro_image_path,
+                    captions=script.intro_captions,
+                )
         clips.append(intro)
 
     # Sections
     section_clips_added = 0
     for section in script.sections:
-        if not section.image_path or not section.audio_path:
+        has_video = section.video_path and Path(section.video_path).exists()
+        has_image = section.image_path and Path(section.image_path).exists()
+        if not section.audio_path or (not has_video and not has_image):
             log(f"skip section {section.number}: missing assets")
             continue
         # Insert silent gap between sections
@@ -214,14 +362,26 @@ def compose_video(
             gap = ColorClip(resolution, color=(0, 0, 0), duration=config.section_gap)
             clips.append(gap)
         log(f"building section {section.number}: {section.heading}")
-        section_clip = _build_section_clip(
-            image_path=section.image_path,
-            audio_path=section.audio_path,
-            heading=section.heading,
-            number=section.number,
-            config=config,
-            image_paths=section.image_paths or None,
-        )
+        if has_video:
+            section_clip = _build_video_section_clip(
+                video_path=section.video_path,
+                audio_path=section.audio_path,
+                heading=section.heading,
+                number=section.number,
+                config=config,
+                video_paths=section.video_paths or None,
+                captions=section.captions or None,
+            )
+        else:
+            section_clip = _build_section_clip(
+                image_path=section.image_path,
+                audio_path=section.audio_path,
+                heading=section.heading,
+                number=section.number,
+                config=config,
+                image_paths=section.image_paths or None,
+                captions=section.captions or None,
+            )
         clips.append(section_clip)
         section_clips_added += 1
 
@@ -235,6 +395,7 @@ def compose_video(
             config,
             card_type="outro",
             image_path=script.outro_image_path,
+            captions=script.outro_captions,
         )
         clips.append(outro)
 
@@ -261,7 +422,7 @@ def compose_video(
         threads=os.cpu_count() or 8,
         preset=config.encoding_preset,
         pixel_format="yuv420p",
-        ffmpeg_params=["-c:v", "h264_videotoolbox"],
+        ffmpeg_params=["-c:v", "h264_videotoolbox"] if platform.system() == "Darwin" else [],
         logger=frame_logger,
     )
 

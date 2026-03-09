@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a"/>
+      <stop offset="100%" style="stop-color:#171717"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#818cf8"/>
+      <stop offset="100%" style="stop-color:#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="url(#bg)"/>
+  <!-- Subtle border -->
+  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="none" stroke="#262626" stroke-width="2"/>
+  <!-- Film strip left -->
+  <rect x="72" y="120" width="48" height="272" rx="8" fill="#262626"/>
+  <rect x="80" y="132" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="80" y="160" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="80" y="188" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="80" y="216" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="80" y="244" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="80" y="272" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="80" y="300" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="80" y="328" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="80" y="356" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="100" y="132" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="100" y="160" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="100" y="188" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="100" y="216" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="100" y="244" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="100" y="272" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="100" y="300" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="100" y="328" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <rect x="100" y="356" width="12" height="16" rx="2" fill="#0a0a0a"/>
+  <!-- Play button circle -->
+  <circle cx="288" cy="240" r="120" fill="#262626"/>
+  <circle cx="288" cy="240" r="96" fill="#333333"/>
+  <!-- Play triangle -->
+  <polygon points="260,185 260,295 350,240" fill="url(#accent)"/>
+  <!-- AI sparkle top-right -->
+  <g transform="translate(380, 120)" fill="#818cf8">
+    <polygon points="0,-20 5,-6 20,0 5,6 0,20 -5,6 -20,0 -5,-6"/>
+  </g>
+  <g transform="translate(420, 170)" fill="#a78bfa">
+    <polygon points="0,-12 3,-4 12,0 3,4 0,12 -3,4 -12,0 -3,-4" opacity="0.7"/>
+  </g>
+  <!-- Caption bar at bottom -->
+  <rect x="140" y="360" width="296" height="44" rx="22" fill="#262626"/>
+  <rect x="160" y="372" width="60" height="8" rx="4" fill="#a3a3a3"/>
+  <rect x="228" y="372" width="48" height="8" rx="4" fill="#818cf8"/>
+  <rect x="284" y="372" width="56" height="8" rx="4" fill="#a3a3a3"/>
+  <rect x="160" y="384" width="40" height="8" rx="4" fill="#525252"/>
+  <rect x="208" y="384" width="52" height="8" rx="4" fill="#525252"/>
+</svg>

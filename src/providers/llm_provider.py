@@ -52,6 +52,8 @@ class OpenAILLMProvider(LLMProvider):
 
     async def generate_script(
         self, topic: str, num_sections: int, subtitles: list[str] | None = None,
+        image_style: str = "", images_per_section: int = 1,
+        custom_instructions: str = "", video_length: str = "medium",
     ) -> Script:
         user_prompt = USER_PROMPT_TEMPLATE.format(
             topic=topic, num_sections=num_sections

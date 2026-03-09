@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+body {
+  @apply bg-neutral-950 text-neutral-200 font-sans m-0 min-h-screen antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }

@@ -6,6 +6,21 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
+class CaptionWord(BaseModel):
+    """A single word with timing info for captions."""
+    word: str
+    start: float  # seconds
+    end: float    # seconds
+
+
+class CaptionSegment(BaseModel):
+    """A timed segment of caption text with per-word timing."""
+    text: str
+    start: float
+    end: float
+    words: list[CaptionWord] = Field(default_factory=list)
+
+
 class Section(BaseModel):
     """A single listicle section."""
 
@@ -15,10 +30,16 @@ class Section(BaseModel):
     image_prompt: str = ""
     image_prompts: list[str] = Field(default_factory=list)
     # Populated during generation
+    video_prompt: str = ""
+    # Populated during generation
     audio_path: Optional[Path] = None
     image_path: Optional[Path] = None
     image_paths: list[Path] = Field(default_factory=list)
+    video_path: Optional[Path] = None
+    video_paths: list[Path] = Field(default_factory=list)
     duration: Optional[float] = None  # seconds, derived from audio length
+    audio_cdn_url: Optional[str] = None
+    captions: list[CaptionSegment] = Field(default_factory=list)
 
 
 class Script(BaseModel):
@@ -34,9 +55,15 @@ class Script(BaseModel):
     intro_audio_path: Optional[Path] = None
     outro_audio_path: Optional[Path] = None
     intro_image_path: Optional[Path] = None
+    intro_image_paths: list[Path] = Field(default_factory=list)
+    intro_video_paths: list[Path] = Field(default_factory=list)
     outro_image_path: Optional[Path] = None
     intro_duration: Optional[float] = None
     outro_duration: Optional[float] = None
+    intro_audio_cdn_url: Optional[str] = None
+    outro_audio_cdn_url: Optional[str] = None
+    intro_captions: list[CaptionSegment] = Field(default_factory=list)
+    outro_captions: list[CaptionSegment] = Field(default_factory=list)
 
 
 class VideoConfig(BaseModel):
@@ -51,6 +78,19 @@ class VideoConfig(BaseModel):
     encoding_preset: str = "fast"  # ultrafast | fast | medium | slow
     font: str = "assets/fonts/Montserrat-Bold.ttf"
     images_per_section: int = 1  # 1-5 images per section
+    section_media_type: str = "image"  # "image" or "video"
+    videos_per_section: int = 1  # 1-5 video clips per section
+    video_gen_duration: int = 5  # 1-10 seconds per clip
+    intro_video_count: int = 2  # number of overview video clips for intro
+    captions_enabled: bool = True
+    caption_font: str = "assets/fonts/Montserrat-Bold.ttf"
+    caption_font_size: int = 0  # 0 = auto-detect based on resolution
+    caption_text_color: str = "#FFFFFF"
+    caption_active_color: str = "#FFFF32"
+    caption_bg_color: str = "#000000"
+    caption_bg_opacity: int = 160  # 0-255
+    caption_uppercase: bool = True
+    caption_position: int = 75  # vertical position as % from top (0=top, 100=bottom)
 
 
 class ProviderConfig(BaseModel):
@@ -70,4 +110,5 @@ class AppConfig(BaseModel):
     llm: ProviderConfig
     voice: ProviderConfig
     image: ProviderConfig
+    video_gen: Optional[ProviderConfig] = None
     video: VideoConfig = Field(default_factory=VideoConfig)

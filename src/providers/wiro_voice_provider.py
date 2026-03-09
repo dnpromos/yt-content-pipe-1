@@ -21,7 +21,8 @@ class WiroVoiceProvider(VoiceProvider):
         self.voice = config.voice_id or "EXAVITQu4vr4xnSDxMaL"  # Sarah
         self.output_format = config.extra.get("output_format", "mp3_44100_128")
 
-    async def generate_speech(self, text: str, output_path: Path) -> float:
+    async def generate_speech(self, text: str, output_path: Path) -> tuple[float, str | None]:
+        """Generate speech. Returns (duration, cdn_url)."""
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         payload = {
@@ -37,18 +38,19 @@ class WiroVoiceProvider(VoiceProvider):
         if not urls:
             raise RuntimeError("No audio output from Wiro TTS task.")
 
+        cdn_url = urls[0]
+
         async with httpx.AsyncClient(timeout=60.0) as http:
-            resp = await http.get(urls[0])
+            resp = await http.get(cdn_url)
             resp.raise_for_status()
 
         with open(output_path, "wb") as f:
             f.write(resp.content)
 
-        # Get audio duration using moviepy
         from moviepy import AudioFileClip
 
         clip = AudioFileClip(str(output_path))
         duration = clip.duration
         clip.close()
 
-        return duration
+        return duration, cdn_url
