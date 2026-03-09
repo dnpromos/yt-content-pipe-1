@@ -1,17 +1,42 @@
 use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
+use tauri_plugin_shell::process::CommandEvent;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            let sidecar = app.shell().sidecar("python-backend")
-                .expect("failed to create sidecar command");
-            let (_rx, _child) = sidecar.spawn()
-                .expect("failed to spawn python-backend sidecar");
-            // Keep _child alive so the process isn't dropped
-            app.manage(_child);
+            // In debug/dev mode, the Python server is started manually.
+            // In release mode, launch the bundled sidecar binary.
+            if !cfg!(debug_assertions) {
+                let sidecar = app.shell().sidecar("python-backend")
+                    .expect("failed to create sidecar command");
+                let (mut rx, child) = sidecar.spawn()
+                    .expect("failed to spawn python-backend sidecar");
+
+                // Log sidecar stdout/stderr for troubleshooting
+                tauri::async_runtime::spawn(async move {
+                    while let Some(event) = rx.recv().await {
+                        match event {
+                            CommandEvent::Stdout(line) => {
+                                println!("[sidecar stdout] {}", String::from_utf8_lossy(&line));
+                            }
+                            CommandEvent::Stderr(line) => {
+                                eprintln!("[sidecar stderr] {}", String::from_utf8_lossy(&line));
+                            }
+                            CommandEvent::Terminated(status) => {
+                                eprintln!("[sidecar] terminated with {:?}", status);
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                });
+
+                // Keep child alive so the process isn't dropped
+                app.manage(child);
+            }
             Ok(())
         })
         .run(tauri::generate_context!())

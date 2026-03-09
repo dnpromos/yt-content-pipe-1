@@ -1,5 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/nicegui/tauri-v2-nightly/dev/crates/tauri-config-schema/schema.json",
   "productName": "clipmatic.video",
   "version": "0.1.0",
   "identifier": "com.clipmatic.video",
@@ -33,7 +32,8 @@
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
-      "icons/icon.ico"
+      "icons/icon.ico",
+      "icons/icon.svg"
     ],
     "macOS": {
       "minimumSystemVersion": "10.15"

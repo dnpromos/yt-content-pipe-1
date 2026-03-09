@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Youtube Video Automation: Faceless Video Generator - clipmatic</title>
-  <meta name="description" content="Turn any topic into a fully produced video in minutes. Portrait & landscape. TikTok-style captions. AI script, voice, images, video clips & final assembly. Native Mac app, zero markup on AI costs.">
+  <meta name="description" content="Turn any topic into a fully produced video in minutes. Portrait & landscape. TikTok-style captions. AI script, voice, images, video clips & final assembly. Native desktop app for Mac & Windows, zero markup on AI costs.">
   <meta name="keywords" content="AI video generator, YouTube automation, TikTok video maker, AI voiceover, vertical video, portrait video, faceless YouTube channel, AI video maker, YouTube Shorts, Instagram Reels">
   <meta property="og:title" content="Clipmatic — AI Video Generator for YouTube, TikTok & Reels">
   <meta property="og:description" content="Generate full videos from a single topic. Portrait & landscape. TikTok captions. AI script, voice, images, video & assembly. Own the code, $0 markup.">
@@ -1064,7 +1064,7 @@
         <div class="period">One-time payment · Lifetime access · Free monthly updates</div>
         <div class="countdown">🔥 Only <strong>&nbsp;12 of 100&nbsp;</strong> spots left at this price — then it's $199</div>
         <ul>
-          <li><span class="check">✓</span> Native Mac app — runs locally on your machine</li>
+          <li><span class="check">✓</span> Native desktop app (Mac & Windows) — runs locally on your machine</li>
           <li><span class="check">✓</span> Free monthly updates with new features & models</li>
           <li><span class="check">✓</span> Zero markup — pay AI providers at cost</li>
           <li><span class="check">✓</span> Portrait & landscape video output</li>
@@ -1074,7 +1074,7 @@
           <li><span class="check">✓</span> Built-in cost calculator & web dashboard</li>
           <li><span class="check">✓</span> No subscriptions, no recurring fees, no BS</li>
         </ul>
-        <button class="btn-primary" onclick="document.getElementById('mac-modal').style.display='flex'" style="width:100%;justify-content:center;">Buy Now — $64.99</button>
+        <a href="https://buy.polar.sh/polar_cl_x8UuVaifSWpsiQ7uA1kEHx1REvw07XxrH2fdh3Cug62" class="btn-primary" style="width:100%;justify-content:center;text-decoration:none;">Buy Now — $64.99</a>
       </div>
     </div>
   </section>
@@ -1086,7 +1086,7 @@
       <div class="faq-list">
         <details class="faq-item">
           <summary>What do I need to run this?</summary>
-          <p>Python 3.11+, Node.js 18+, and API keys for AI generation and voice synthesis. Everything runs locally on your machine.</p>
+          <p>A Mac or Windows PC, and API keys for AI generation and voice synthesis. Everything runs locally on your machine.</p>
         </details>
         <details class="faq-item">
           <summary>Do I need to pay a subscription?</summary>
@@ -1112,28 +1112,6 @@
     </div>
   </section>
 
-  <!-- MAC CHECK MODAL -->
-  <div id="mac-modal" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px;max-width:420px;width:90%;text-align:center;">
-      <div style="font-size:36px;margin-bottom:12px;">&#63743;</div>
-      <h3 style="font-size:20px;font-weight:800;margin-bottom:8px;">Do you have a Mac?</h3>
-      <p style="font-size:14px;color:var(--text-muted);margin-bottom:24px;line-height:1.6;">Clipmatic currently runs on macOS only (Apple Silicon & Intel).</p>
-      <div style="display:flex;gap:12px;">
-        <a href="https://buy.polar.sh/polar_cl_x8UuVaifSWpsiQ7uA1kEHx1REvw07XxrH2fdh3Cug62" id="mac-yes" class="btn-primary" style="flex:1;justify-content:center;font-size:15px;padding:12px;">Yes, I have a Mac</a>
-        <button onclick="document.getElementById('mac-modal').style.display='none';document.getElementById('sorry-modal').style.display='flex'" class="btn-outline" style="flex:1;justify-content:center;font-size:15px;padding:12px;">No</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SORRY MODAL -->
-  <div id="sorry-modal" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px;max-width:420px;width:90%;text-align:center;">
-      <div style="font-size:36px;margin-bottom:12px;">😔</div>
-      <h3 style="font-size:20px;font-weight:800;margin-bottom:8px;">macOS Only (For Now)</h3>
-      <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">Sorry, Clipmatic currently requires macOS to run. We're working on Windows & Linux support — join the waitlist to get notified.</p>
-      <button onclick="this.parentElement.parentElement.style.display='none'" class="btn-outline" style="width:100%;justify-content:center;font-size:14px;padding:12px;">Got it</button>
-    </div>
-  </div>
 
   <!-- LIGHTBOX -->
   <div class="lightbox" id="lightbox" onclick="closeLightbox()">
