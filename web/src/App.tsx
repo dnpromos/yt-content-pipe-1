@@ -11,11 +11,12 @@ import { StepAssemble } from './components/StepAssemble';
 import { LogPanel } from './components/LogPanel';
 import { RunList } from './components/RunList';
 import { CredentialsPopover } from './components/CredentialsPopover';
+import { Lightbox } from './components/Lightbox';
 import { api } from './lib/api';
-import { FolderOpen, OctagonX } from 'lucide-react';
+import { FolderOpen, OctagonX, RotateCcw } from 'lucide-react';
 
 function App() {
-  const { addLog, setScript, setRunId, setStage, setVideoPath, setTaskId, uiStep, setUiStep } = useStore();
+  const { addLog, setScript, setRunId, setStage, setVideoPath, setTaskId, uiStep, setUiStep, resetRun } = useStore();
   const [runsOpen, setRunsOpen] = useState(false);
 
   const handleWsMessage = useCallback((data: Record<string, unknown>) => {
@@ -73,6 +74,11 @@ function App() {
         <div className="flex items-center justify-between px-8 py-3 max-w-5xl mx-auto w-full">
           <h1 className="text-sm font-bold text-neutral-300 tracking-wide">clipmatic.video</h1>
           <div className="flex items-center gap-1">
+            <button onClick={() => { api.killAll(); resetRun(); }}
+              title="Start a new run (keeps settings & topic)"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-indigo-400/70 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg cursor-pointer transition-colors">
+              <RotateCcw size={14} /> New Run
+            </button>
             <button onClick={() => { api.killAll(); }}
               title="Kill all running tasks"
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-500/70 hover:text-red-400 hover:bg-red-500/10 rounded-lg cursor-pointer transition-colors">
@@ -100,6 +106,7 @@ function App() {
 
       {/* Log panel */}
       <LogPanel />
+      <Lightbox />
     </div>
   );
 }

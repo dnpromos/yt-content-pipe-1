@@ -195,7 +195,7 @@ export function StepTopic() {
           disabled={busy || !topic.trim()}
           className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-sm font-medium text-neutral-200 cursor-pointer transition-all"
         >
-          Generate Script Only
+          Start Generating Script
         </button>
       </div>
     </div>

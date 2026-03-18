@@ -62,6 +62,7 @@ type AppState = {
   clearLogs: () => void;
   taskId: string | null;
   setTaskId: (id: string | null) => void;
+  resetRun: () => void;
 };
 
 const defaultConfig: ConfigPayload = {
@@ -127,6 +128,7 @@ export const useStore = create<AppState>()(
       clearLogs: () => set({ logs: [] }),
       taskId: null,
       setTaskId: (taskId) => set({ taskId }),
+      resetRun: () => set({ script: null, runId: null, videoPath: null, logs: [], taskId: null, stage: 'idle', uiStep: 1 as UiStep }),
     }),
     {
       name: 'clipmatic-store',

@@ -10,6 +10,20 @@ pub fn run() {
             // In debug/dev mode, the Python server is started manually.
             // In release mode, launch the bundled sidecar binary.
             if !cfg!(debug_assertions) {
+                // Kill any stale process on port 8000 before spawning
+                #[cfg(target_os = "macos")]
+                {
+                    let _ = std::process::Command::new("sh")
+                        .args(["-c", "lsof -ti:8000 | xargs kill -9 2>/dev/null"])
+                        .output();
+                }
+                #[cfg(target_os = "windows")]
+                {
+                    let _ = std::process::Command::new("cmd")
+                        .args(["/C", "for /f \"tokens=5\" %a in ('netstat -aon ^| findstr :8000') do taskkill /PID %a /F 2>nul"])
+                        .output();
+                }
+
                 let sidecar = app.shell().sidecar("python-backend")
                     .expect("failed to create sidecar command");
                 let (mut rx, child) = sidecar.spawn()

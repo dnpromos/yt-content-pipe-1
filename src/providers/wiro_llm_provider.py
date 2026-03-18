@@ -315,9 +315,15 @@ class WiroLLMProvider(LLMProvider):
                 sections = []
                 for raw_s in raw_sections:
                     # Strip whitespace from keys (LLM sometimes adds trailing spaces)
-                    s = {k.strip(): v for k, v in raw_s.items()}
+                    s = {k.strip(): (v.strip() if isinstance(v, str) else v) for k, v in raw_s.items()}
                     if not s.get("heading"):
-                        s["heading"] = f"Section {s.get('number', len(sections) + 1)}"
+                        # Try alternate key names
+                        for alt in ("title", "name", "subject", "topic"):
+                            if s.get(alt):
+                                s["heading"] = s.pop(alt)
+                                break
+                        else:
+                            s["heading"] = f"Section {s.get('number', len(sections) + 1)}"
                     # LLM sometimes uses variant key names for narration
                     if not s.get("narration"):
                         for alt in ("script", "text", "content", "description", "body"):
@@ -362,9 +368,13 @@ class WiroLLMProvider(LLMProvider):
                 if not outro_img:
                     outro_img = f"Cinematic closing shot for a video about: {data.get('title', topic)}, warm lighting, high detail, 16:9"
 
+                intro_narration = data.get("intro_narration", "") or ""
+                if not intro_narration.strip():
+                    intro_narration = f"Welcome! Today we're diving into {data.get('title', topic)}. Let's get started!"
+
                 return Script(
-                    title=data.get("title", topic),
-                    intro_narration=data.get("intro_narration", ""),
+                    title=data.get("title", topic) or topic,
+                    intro_narration=intro_narration,
                     intro_image_prompt=intro_img,
                     sections=sections,
                     outro_narration=outro,

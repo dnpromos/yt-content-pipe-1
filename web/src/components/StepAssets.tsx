@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useStore, type ScriptData } from '../lib/store';
 import { api } from '../lib/api';
 import { RefreshCw, ArrowRight, CheckCircle, Loader, AlertCircle, ImagePlus, Upload, Trash2, Volume2 } from 'lucide-react';
+import { openLightbox } from './Lightbox';
 
 export function StepAssets() {
   const { script, config, runId, stage, setStage, setTaskId, addLog, clearLogs, setUiStep, logs } = useStore();
@@ -256,7 +257,7 @@ function SpecialAssetBlock({ label, kind, audioPath, imagePath, imagePaths, vide
         <div className="flex flex-wrap gap-2">
           {allImages.map((p, i) => (
             <div key={p} className="relative group">
-              <img src={api.fileUrl(p)} alt={`${kind} ${i}`} className="h-24 w-auto rounded-lg border border-neutral-800 object-cover" />
+              <img src={api.fileUrl(p)} alt={`${kind} ${i}`} onClick={() => openLightbox(api.fileUrl(p), 'image')} className="h-24 w-auto rounded-lg border border-neutral-800 object-cover cursor-zoom-in" />
               <button onClick={() => handleDelete(p)}
                 className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center bg-red-900/80 hover:bg-red-700 rounded text-red-300 text-[8px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 <Trash2 size={8} />
@@ -265,7 +266,7 @@ function SpecialAssetBlock({ label, kind, audioPath, imagePath, imagePaths, vide
             </div>
           ))}
           {videoPaths && videoPaths.map((p) => (
-            <video key={p} src={api.fileUrl(p)} controls className="h-24 rounded-lg border border-neutral-800" />
+            <video key={p} src={api.fileUrl(p)} controls onClick={(e) => { e.preventDefault(); openLightbox(api.fileUrl(p), 'video'); }} className="h-24 rounded-lg border border-neutral-800 cursor-zoom-in" />
           ))}
         </div>
       )}
@@ -379,13 +380,13 @@ function SectionAssetBlock({ section, busy }: { section: ReturnType<typeof useSt
         <div className="flex flex-wrap gap-2">
           {section.video_paths && section.video_paths.map((p: string, i: number) => (
             <div key={p} className="relative group">
-              <video src={api.fileUrl(p)} controls className="h-24 rounded-lg border border-neutral-800" />
+              <video src={api.fileUrl(p)} controls onClick={(e) => { e.preventDefault(); openLightbox(api.fileUrl(p), 'video'); }} className="h-24 rounded-lg border border-neutral-800 cursor-zoom-in" />
               {i === 0 && <div className="absolute top-0.5 left-0.5 bg-indigo-600/80 text-[7px] text-white px-1 rounded">primary</div>}
             </div>
           ))}
           {section.image_paths.map((p: string, i: number) => (
             <div key={p} className="relative group">
-              <img src={api.fileUrl(p)} alt={`s${section.number} img ${i}`} className="h-24 w-auto rounded-lg border border-neutral-800 object-cover" />
+              <img src={api.fileUrl(p)} alt={`s${section.number} img ${i}`} onClick={() => openLightbox(api.fileUrl(p), 'image')} className="h-24 w-auto rounded-lg border border-neutral-800 object-cover cursor-zoom-in" />
               <div className="absolute top-0.5 right-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => handleRemoveFromSection(p)} title="remove from section"
                   className="w-4 h-4 flex items-center justify-center bg-neutral-900/80 hover:bg-neutral-700 rounded text-neutral-400 text-[8px] cursor-pointer">✕</button>

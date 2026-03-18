@@ -1,7 +1,9 @@
 """TikTok-style word-by-word caption renderer for MoviePy clips."""
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 from moviepy import CompositeVideoClip, ImageClip, VideoClip
@@ -55,7 +57,10 @@ class CaptionStyle:
 
 def _load_font(font_path: str, size: int) -> ImageFont.FreeTypeFont:
     try:
-        return ImageFont.truetype(font_path, size)
+        path = font_path
+        if getattr(sys, 'frozen', False) and not Path(path).exists():
+            path = str(Path(sys._MEIPASS) / font_path)
+        return ImageFont.truetype(path, size)
     except (OSError, IOError):
         return ImageFont.load_default()
 
@@ -65,13 +70,16 @@ def _is_portrait(resolution: tuple[int, int]) -> bool:
 
 
 def _auto_font_size(resolution: tuple[int, int]) -> int:
-    """Auto font size based on resolution shortest side.
+    """Auto font size based on resolution and aspect ratio.
 
-    Targets ~5% of the shorter dimension so captions look proportional
-    in both landscape and portrait.  For 1080p that gives ~54 px.
+    Portrait (9:16): uses ~8% of width for readable captions on narrow screens.
+    Landscape (16:9): uses ~5.5% of height for proportional captions.
     """
-    short = min(resolution)
-    return max(32, int(short * 0.05))
+    w, h = resolution
+    if h > w:
+        return max(36, int(w * 0.08))
+    else:
+        return max(36, int(h * 0.055))
 
 
 def _get_words_per_group(resolution: tuple[int, int]) -> int:

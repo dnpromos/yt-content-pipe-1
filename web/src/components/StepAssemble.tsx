@@ -1,6 +1,6 @@
 import { useStore } from '../lib/store';
 import { api } from '../lib/api';
-import { Film, Loader, CheckCircle } from 'lucide-react';
+import { Film, Loader, CheckCircle, Download } from 'lucide-react';
 
 export function StepAssemble() {
   const { script, config, runId, stage, setStage, setTaskId, addLog, clearLogs, videoPath } = useStore();
@@ -53,41 +53,6 @@ export function StepAssemble() {
         )}
       </div>
 
-      {/* Assemble button */}
-      {stage !== 'video_done' && (
-        <div className="flex justify-center">
-          <button
-            onClick={handleAssemble}
-            disabled={busy || !runId}
-            className="flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-base font-medium text-white cursor-pointer transition-all shadow-lg shadow-indigo-500/20"
-          >
-            {busy ? (
-              <>
-                <Loader size={18} className="animate-spin" />
-                Assembling Video...
-              </>
-            ) : (
-              <>
-                <Film size={18} />
-                Assemble Video
-              </>
-            )}
-          </button>
-        </div>
-      )}
-
-      {/* Reassemble */}
-      {stage === 'video_done' && (
-        <div className="flex justify-center gap-3">
-          <button
-            onClick={handleAssemble}
-            className="flex items-center gap-2 px-6 py-3 bg-neutral-800 hover:bg-neutral-700 rounded-xl text-sm text-neutral-300 cursor-pointer transition-colors"
-          >
-            <Film size={14} /> Reassemble
-          </button>
-        </div>
-      )}
-
       {/* Video player */}
       {stage === 'video_done' && videoPath && (
         <div className="space-y-3">
@@ -106,6 +71,33 @@ export function StepAssemble() {
           <p className="text-xs text-neutral-600 text-center">{videoPath}</p>
         </div>
       )}
+
+      {/* Bottom action bar */}
+      <div className="flex items-center gap-3 pt-2">
+        {stage === 'video_done' && (
+          <button onClick={handleAssemble}
+            className="flex items-center gap-2 px-5 py-2.5 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-xs text-neutral-300 cursor-pointer transition-colors">
+            <Film size={14} /> Reassemble
+          </button>
+        )}
+        <div className="flex-1" />
+        {stage === 'video_done' && videoPath && (
+          <a href={api.fileUrl(videoPath)} download
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium text-white cursor-pointer transition-all shadow-lg shadow-emerald-500/20">
+            <Download size={14} /> Download Video
+          </a>
+        )}
+        {stage !== 'video_done' && (
+          <button onClick={handleAssemble} disabled={busy || !runId}
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-white cursor-pointer transition-all shadow-lg shadow-indigo-500/20">
+            {busy ? (
+              <><Loader size={14} className="animate-spin" /> Assembling Video...</>
+            ) : (
+              <><Film size={14} /> Assemble Video</>
+            )}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

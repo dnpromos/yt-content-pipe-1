@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useStore, type Section, type ScriptData } from '../lib/store';
 import { api } from '../lib/api';
 import { FileText, Download, RefreshCw, Film, Save, ImagePlus, Upload, AlertTriangle } from 'lucide-react';
+import { openLightbox } from './Lightbox';
 
 export function ScriptEditor() {
   const { script, setScript, config, runId, stage, setStage, setTaskId, addLog, clearLogs } = useStore();
@@ -244,7 +245,7 @@ function SpecialBlock({ label, kind, narration, imagePrompt, imagePath, imagePat
         <div className="flex flex-wrap gap-2 mt-2">
           {allImages.map((p, i) => (
             <div key={i} className="relative group">
-              <img src={api.fileUrl(p)} alt={`${kind} ${i + 1}`} className="w-32 h-auto rounded border border-neutral-800" />
+              <img src={api.fileUrl(p)} alt={`${kind} ${i + 1}`} onClick={() => openLightbox(api.fileUrl(p), 'image')} className="w-32 h-auto rounded border border-neutral-800 cursor-zoom-in" />
               <button onClick={() => handleDeleteImage(p)} title="delete image"
                 className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center bg-red-900/80 hover:bg-red-700 rounded text-red-300 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 🗑
@@ -264,7 +265,7 @@ function SpecialBlock({ label, kind, narration, imagePrompt, imagePath, imagePat
           </div>
           <div className="flex flex-wrap gap-2">
             {videoPaths.map((p, i) => (
-              <video key={i} src={api.fileUrl(p)} controls className="w-40 rounded border border-neutral-800" />
+              <video key={i} src={api.fileUrl(p)} controls onClick={(e) => { e.preventDefault(); openLightbox(api.fileUrl(p), 'video'); }} className="w-40 rounded border border-neutral-800 cursor-zoom-in" />
             ))}
           </div>
         </div>
@@ -434,7 +435,7 @@ function SectionCard({ section, onChange, onRetry, busy }: {
           <div className="flex flex-wrap gap-2">
             {section.video_paths.map((p, i) => (
               <div key={i} className="relative group">
-                <video src={api.fileUrl(p)} controls className="w-40 rounded border border-neutral-800" />
+                <video src={api.fileUrl(p)} controls onClick={(e) => { e.preventDefault(); openLightbox(api.fileUrl(p), 'video'); }} className="w-40 rounded border border-neutral-800 cursor-zoom-in" />
                 {i === 0 && (
                   <div className="absolute top-1 left-1 bg-indigo-600/80 text-[8px] text-white px-1 rounded">primary</div>
                 )}
@@ -450,7 +451,7 @@ function SectionCard({ section, onChange, onRetry, busy }: {
           {section.image_paths.map((p, i) => (
             <div key={i} className="relative group">
               <img src={api.fileUrl(p)} alt={`section ${section.number} img ${i + 1}`}
-                className="w-28 h-auto rounded border border-neutral-800" />
+                onClick={() => openLightbox(api.fileUrl(p), 'image')} className="w-28 h-auto rounded border border-neutral-800 cursor-zoom-in" />
               <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => handleRemoveFromSection(p)} title="remove from section"
                   className="w-5 h-5 flex items-center justify-center bg-neutral-900/80 hover:bg-neutral-700 rounded text-neutral-400 text-[10px] cursor-pointer">

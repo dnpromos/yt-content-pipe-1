@@ -47,11 +47,13 @@ pyinstaller \
     --hidden-import uvicorn.loops \
     --hidden-import uvicorn.loops.auto \
     --hidden-import fastapi \
-    --hidden-import moviepy \
     --hidden-import PIL \
     --hidden-import httpx \
     --hidden-import pydantic \
     --hidden-import numpy \
+    --collect-all moviepy \
+    --collect-all imageio_ffmpeg \
+    --collect-all imageio \
     --clean \
     --noconfirm \
     server.py

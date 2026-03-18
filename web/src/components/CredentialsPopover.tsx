@@ -27,7 +27,7 @@ export function CredentialsPopover() {
     try {
       await api.saveConfig(config);
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setTimeout(() => { setSaved(false); setOpen(false); }, 800);
     } catch { /* ignore */ }
   };
 
@@ -79,6 +79,10 @@ export function CredentialsPopover() {
                 placeholder="WIRO_API_SECRET"
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-neutral-600" />
             </div>
+          </div>
+
+          <div className="rounded-lg bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 text-[11px] text-indigo-300">
+            Use coupon <span className="font-bold text-indigo-200">WIRO10</span> at <a href="https://wiro.ai" target="_blank" rel="noopener noreferrer" className="underline hover:text-indigo-100">wiro.ai</a> for <span className="font-semibold">$10 free AI credits</span>
           </div>
 
           <div className="flex gap-2 pt-1">

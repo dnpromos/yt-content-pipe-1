@@ -4,9 +4,17 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import sys
 import uuid
 from pathlib import Path
 from typing import Optional
+
+# When running as a PyInstaller bundle (Tauri sidecar), the cwd is inside
+# the read-only .app bundle.  Redirect to a writable user directory.
+if getattr(sys, 'frozen', False):
+    _data_dir = Path.home() / "Documents" / "clipmatic"
+    _data_dir.mkdir(parents=True, exist_ok=True)
+    os.chdir(_data_dir)
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -281,6 +289,11 @@ async def websocket_endpoint(ws: WebSocket):
 # ---------------------------------------------------------------------------
 # API endpoints
 # ---------------------------------------------------------------------------
+@app.get("/api/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.get("/api/runs")
 async def list_runs():
     output = Path("output")

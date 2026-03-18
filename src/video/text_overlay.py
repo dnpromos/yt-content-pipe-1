@@ -1,8 +1,18 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import numpy as np
 from moviepy import ImageClip, CompositeVideoClip, VideoClip
 from PIL import Image, ImageDraw, ImageFont
+
+
+def _resolve_font(font_path: str) -> str:
+    """Resolve font path, checking PyInstaller bundle if needed."""
+    if getattr(sys, 'frozen', False) and not Path(font_path).exists():
+        return str(Path(sys._MEIPASS) / font_path)
+    return font_path
 
 
 def create_text_image(
@@ -35,7 +45,7 @@ def create_text_image(
     draw = ImageDraw.Draw(img)
 
     try:
-        font = ImageFont.truetype(font_path, font_size)
+        font = ImageFont.truetype(_resolve_font(font_path), font_size)
     except (OSError, IOError):
         font = ImageFont.load_default()
 
@@ -99,7 +109,7 @@ def add_section_number_badge(
 
     # Draw number
     try:
-        font = ImageFont.truetype(font_path, 48)
+        font = ImageFont.truetype(_resolve_font(font_path), 48)
     except (OSError, IOError):
         font = ImageFont.load_default()
 
