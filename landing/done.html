@@ -108,46 +108,41 @@
 
     <script>
       (async function loadBenefits() {
-        const params = new URLSearchParams(window.location.search);
-        const checkoutId = params.get('checkout_id');
-        if (!checkoutId) return;
+        var params = new URLSearchParams(window.location.search);
+        var token = params.get('customer_session_token');
+        var container = document.getElementById('downloads');
+        if (!token) return;
 
-        const container = document.getElementById('downloads');
         container.style.display = 'block';
         container.innerHTML = '<h3>Your Downloads</h3><p class="downloads-loading">Loading your files...</p>';
 
         try {
-          const res = await fetch(`https://api.polar.sh/v1/checkouts/custom/${checkoutId}`);
-          if (!res.ok) throw new Error('Could not load checkout');
-          const checkout = await res.json();
+          var res = await fetch('https://api.polar.sh/v1/customer-portal/downloadables/?limit=50', {
+            headers: { 'Authorization': 'Bearer ' + token },
+            redirect: 'follow'
+          });
+          if (!res.ok) throw new Error('status ' + res.status);
+          var data = await res.json();
+          var items = data.items || [];
 
-          const benefits = (checkout.product?.benefits || []).filter(b => b.type === 'downloadables');
-          if (!benefits.length) {
+          if (!items.length) {
             container.innerHTML = '<h3>Your Downloads</h3><p class="downloads-loading">Your download links will be sent to your email shortly.</p>';
             return;
           }
 
-          let html = '<h3>Your Downloads</h3>';
-          for (const benefit of benefits) {
-            const filesRes = await fetch(`https://api.polar.sh/v1/users/benefits/${benefit.id}`, {
-              headers: { 'Authorization': `Bearer ${checkout.customer_session_token}` }
-            });
-            if (!filesRes.ok) continue;
-            const data = await filesRes.json();
-            const files = data.downloadables || [];
-            for (const file of files) {
-              html += `
-                <a href="${file.file.download.url}" class="download-item" download>
-                  <span class="download-icon">📦</span>
-                  <div class="download-info">
-                    <div class="download-name">${file.file.name}</div>
-                    <div class="download-meta">${(file.file.size / 1048576).toFixed(1)} MB</div>
-                  </div>
-                  <span class="download-btn">Download</span>
-                </a>`;
-            }
+          var html = '<h3>Your Downloads</h3>';
+          for (var i = 0; i < items.length; i++) {
+            var f = items[i].file;
+            html += '<a href="' + f.download.url + '" class="download-item">'
+              + '<span class="download-icon">\uD83D\uDCE6</span>'
+              + '<div class="download-info">'
+              + '<div class="download-name">' + f.name + '</div>'
+              + '<div class="download-meta">' + f.size_readable + '</div>'
+              + '</div>'
+              + '<span class="download-btn">Download</span>'
+              + '</a>';
           }
-          container.innerHTML = html || '<h3>Your Downloads</h3><p class="downloads-loading">Your download links will be sent to your email shortly.</p>';
+          container.innerHTML = html;
         } catch (e) {
           container.innerHTML = '<h3>Your Downloads</h3><p class="downloads-loading">Your download links will be sent to your email shortly.</p>';
         }
