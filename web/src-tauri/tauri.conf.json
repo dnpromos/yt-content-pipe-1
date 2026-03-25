@@ -36,7 +36,9 @@
       "icons/icon.svg"
     ],
     "macOS": {
-      "minimumSystemVersion": "10.15"
+      "minimumSystemVersion": "10.15",
+      "entitlements": "./entitlements.plist",
+      "signingIdentity": null
     },
     "externalBin": [
       "binaries/python-backend"
