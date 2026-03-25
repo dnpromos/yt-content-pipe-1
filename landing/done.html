@@ -14,9 +14,9 @@
     gtag('config', 'G-RYFP5PD588');
     gtag('event', 'purchase', {
       transaction_id: Date.now().toString(),
-      value: 79.00,
+      value: 64.99,
       currency: 'USD',
-      items: [{ item_name: 'clipmatic', price: 79.00, quantity: 1 }]
+      items: [{ item_name: 'clipmatic', price: 64.99, quantity: 1 }]
     });
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -61,6 +61,25 @@
     .support { font-size: 13px; color: #525252; }
     .support a { color: #818cf8; text-decoration: none; }
     .support a:hover { text-decoration: underline; }
+    .downloads { margin: 24px 0; text-align: left; }
+    .downloads h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #737373; margin-bottom: 12px; }
+    .download-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      background: #1c1c1c; border: 1px solid #262626; border-radius: 12px; margin-bottom: 8px;
+      text-decoration: none; transition: border-color .2s;
+    }
+    .download-item:hover { border-color: #818cf8; }
+    .download-icon { font-size: 24px; flex-shrink: 0; }
+    .download-info { flex: 1; }
+    .download-name { font-size: 14px; font-weight: 600; color: #e5e5e5; }
+    .download-meta { font-size: 12px; color: #525252; margin-top: 2px; }
+    .download-btn {
+      font-size: 12px; font-weight: 600; color: #818cf8; background: rgba(99,102,241,.1);
+      border: 1px solid rgba(99,102,241,.25); border-radius: 8px; padding: 6px 14px;
+      text-decoration: none; white-space: nowrap;
+    }
+    .download-btn:hover { background: rgba(99,102,241,.2); }
+    .downloads-loading { font-size: 13px; color: #525252; padding: 12px 0; }
   </style>
 </head>
 <body>
@@ -73,17 +92,67 @@
       <p>Check your inbox (and spam folder) for an email from us within the next few minutes.</p>
     </div>
 
+    <div id="downloads" class="downloads" style="display:none;"></div>
+
     <div class="steps">
       <h3>What happens next</h3>
       <ol>
-        <li>You'll receive an email with your download link and setup guide</li>
-        <li>Clone the repo and follow the 5-minute setup instructions</li>
+        <li>Download the app using the link above</li>
+        <li>Follow the setup instructions included in the download</li>
         <li>Add your API keys and start generating videos</li>
       </ol>
     </div>
 
     <div class="divider"></div>
-    <p class="support">Didn't receive the email? Contact us at <a href="mailto:info@arsprogrammatica.com">info@arsprogrammatica.com</a></p>
+    <p class="support">Didn't receive the email? Contact us at <a href="mailto:info@clipmatic.video">info@clipmatic.video</a></p>
+
+    <script>
+      (async function loadBenefits() {
+        const params = new URLSearchParams(window.location.search);
+        const checkoutId = params.get('checkout_id');
+        if (!checkoutId) return;
+
+        const container = document.getElementById('downloads');
+        container.style.display = 'block';
+        container.innerHTML = '<h3>Your Downloads</h3><p class="downloads-loading">Loading your files...</p>';
+
+        try {
+          const res = await fetch(`https://api.polar.sh/v1/checkouts/custom/${checkoutId}`);
+          if (!res.ok) throw new Error('Could not load checkout');
+          const checkout = await res.json();
+
+          const benefits = (checkout.product?.benefits || []).filter(b => b.type === 'downloadables');
+          if (!benefits.length) {
+            container.innerHTML = '<h3>Your Downloads</h3><p class="downloads-loading">Your download links will be sent to your email shortly.</p>';
+            return;
+          }
+
+          let html = '<h3>Your Downloads</h3>';
+          for (const benefit of benefits) {
+            const filesRes = await fetch(`https://api.polar.sh/v1/users/benefits/${benefit.id}`, {
+              headers: { 'Authorization': `Bearer ${checkout.customer_session_token}` }
+            });
+            if (!filesRes.ok) continue;
+            const data = await filesRes.json();
+            const files = data.downloadables || [];
+            for (const file of files) {
+              html += `
+                <a href="${file.file.download.url}" class="download-item" download>
+                  <span class="download-icon">📦</span>
+                  <div class="download-info">
+                    <div class="download-name">${file.file.name}</div>
+                    <div class="download-meta">${(file.file.size / 1048576).toFixed(1)} MB</div>
+                  </div>
+                  <span class="download-btn">Download</span>
+                </a>`;
+            }
+          }
+          container.innerHTML = html || '<h3>Your Downloads</h3><p class="downloads-loading">Your download links will be sent to your email shortly.</p>';
+        } catch (e) {
+          container.innerHTML = '<h3>Your Downloads</h3><p class="downloads-loading">Your download links will be sent to your email shortly.</p>';
+        }
+      })();
+    </script>
   </div>
 </body>
 </html>
