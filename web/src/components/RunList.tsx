@@ -10,11 +10,13 @@ type Run = { id: string; title: string };
 export function RunList({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { setScript, setRunId, setStage, setVideoPath, setConfig, addLog, setUiStep } = useStore();
   const [runs, setRuns] = useState<Run[]>([]);
+  const [error, setError] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
-      api.listRuns().then((data) => setRuns(data.runs)).catch(() => {});
+      setError(false);
+      api.listRuns().then((data) => setRuns(data.runs)).catch(() => setError(true));
     }
   }, [open]);
 
@@ -62,7 +64,10 @@ export function RunList({ open, onClose }: { open: boolean; onClose: () => void 
         Recent Runs
       </div>
       <div className="max-h-64 overflow-y-auto">
-        {runs.length === 0 && (
+        {error && (
+          <div className="px-3 py-4 text-xs text-red-400 text-center">Failed to load runs</div>
+        )}
+        {!error && runs.length === 0 && (
           <div className="px-3 py-4 text-xs text-ink-4 text-center">No runs found</div>
         )}
         {runs.map((run) => (

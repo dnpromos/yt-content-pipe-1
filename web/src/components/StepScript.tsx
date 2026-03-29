@@ -224,7 +224,7 @@ function SpecialBlock({ label, kind, narration, imagePrompt, imagePath, imagePat
       {allImages.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2">
           {allImages.map((p, i) => (
-            <div key={i} className="relative group">
+            <div key={p} className="relative group">
               <img src={api.fileUrl(p)} alt={`${kind} ${i + 1}`} className="w-32 h-auto rounded-lg border border-edge" />
               <button onClick={() => handleDeleteImage(p)} title="delete"
                 className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center bg-red-900/80 hover:bg-red-700 rounded text-red-300 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
@@ -359,8 +359,8 @@ function SectionCard({ section, onChange, busy }: {
           />
         </div>
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${hasAudio ? 'bg-emerald-500' : 'bg-ink-5'}`} title={hasAudio ? 'audio ok' : 'no audio'} />
-          <span className={`w-2 h-2 rounded-full ${hasImage ? 'bg-emerald-500' : 'bg-ink-5'}`} title={hasImage ? 'image ok' : 'no image'} />
+          <span className={`w-2 h-2 rounded-full ${hasAudio ? 'bg-emerald-500' : 'bg-edge-strong'}`} title={hasAudio ? 'audio ok' : 'no audio'} />
+          <span className={`w-2 h-2 rounded-full ${hasImage ? 'bg-emerald-500' : 'bg-edge-strong'}`} title={hasImage ? 'image ok' : 'no image'} />
           {missingCount > 0 && (
             <button onClick={handleGenerateMissing} disabled={busy}
               className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 hover:bg-amber-200 disabled:opacity-40 rounded text-[10px] text-amber-800 cursor-pointer">
@@ -391,7 +391,7 @@ function SectionCard({ section, onChange, busy }: {
           <div className="text-[10px] uppercase tracking-wider text-accent/60 mb-1">Video clips ({section.video_paths.length})</div>
           <div className="flex flex-wrap gap-2">
             {section.video_paths.map((p, i) => (
-              <div key={i} className="relative group">
+              <div key={p} className="relative group">
                 <video src={api.fileUrl(p)} controls className="w-40 rounded-lg border border-edge" />
                 {i === 0 && <div className="absolute top-1 left-1 bg-accent/80 text-[8px] text-white px-1 rounded">primary</div>}
               </div>
@@ -402,7 +402,7 @@ function SectionCard({ section, onChange, busy }: {
       {section.image_paths.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {section.image_paths.map((p, i) => (
-            <div key={i} className="relative group">
+            <div key={p} className="relative group">
               <img src={api.fileUrl(p)} alt={`section ${section.number} img ${i + 1}`} className="w-28 h-auto rounded-lg border border-edge" />
               <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => handleRemoveFromSection(p)} title="remove" className="w-5 h-5 flex items-center justify-center bg-card/80 hover:bg-edge rounded text-ink-3 text-[10px] cursor-pointer">✕</button>

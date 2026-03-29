@@ -94,12 +94,11 @@ def _get_y_position(resolution: tuple[int, int], text_h: int, position_pct: int)
 
 
 def _build_word_groups(captions: list[CaptionSegment], group_size: int) -> list[list[CaptionWord]]:
-    all_words: list[CaptionWord] = []
-    for seg in captions:
-        all_words.extend(seg.words)
     groups: list[list[CaptionWord]] = []
-    for i in range(0, len(all_words), group_size):
-        groups.append(all_words[i:i + group_size])
+    for seg in captions:
+        words = seg.words
+        for i in range(0, len(words), group_size):
+            groups.append(words[i:i + group_size])
     return groups
 
 
@@ -124,10 +123,6 @@ def _render_caption_frame(
     bbox = draw.textbbox((0, 0), full_text, font=font)
     text_w = bbox[2] - bbox[0]
     text_h = bbox[3] - bbox[1]
-
-    max_text_w = int(w * 0.9)
-    if text_w > max_text_w:
-        text_w = max_text_w
 
     y_pos = _get_y_position(resolution, text_h, style.position)
     x_start = (w - text_w) // 2
@@ -189,36 +184,34 @@ def render_captions(
 
     font = _load_font(style.font_path, style.font_size)
 
-    overlay_clips: list[ImageClip] = []
-
+    windows: list[tuple[float, float, int, list]] = []
     for group in groups:
-        group_start = group[0].start + audio_offset
-        group_end = group[-1].end + audio_offset
-
-        if group_end > clip.duration:
-            group_end = clip.duration
-        if group_start >= clip.duration:
-            continue
-
         for word_idx, word in enumerate(group):
             word_start = word.start + audio_offset
             word_end = word.end + audio_offset
-
             if word_start >= clip.duration:
                 continue
             word_end = min(word_end, clip.duration)
             if word_end <= word_start:
                 continue
+            windows.append((word_start, word_end, word_idx, group))
 
-            frame = _render_caption_frame(group, word_idx, font, resolution, style)
-            word_clip = (
-                ImageClip(frame)
-                .with_duration(word_end - word_start)
-                .with_start(word_start)
-            )
-            overlay_clips.append(word_clip)
-
-    if not overlay_clips:
+    if not windows:
         return clip
 
-    return CompositeVideoClip([clip, *overlay_clips], size=resolution)
+    _frame_cache: dict[tuple[int, int], np.ndarray] = {}
+
+    def make_caption_frame(t: float) -> np.ndarray:
+        w, h = resolution
+        for start, end, active_idx, group in windows:
+            if start <= t < end:
+                cache_key = (id(group), active_idx)
+                if cache_key not in _frame_cache:
+                    _frame_cache[cache_key] = _render_caption_frame(group, active_idx, font, resolution, style)
+                return _frame_cache[cache_key]
+        return np.zeros((h, w, 4), dtype=np.uint8)
+
+    caption_clip = VideoClip(make_caption_frame, duration=clip.duration, ismask=False)
+    caption_clip = caption_clip.with_fps(clip.fps or 30)
+
+    return CompositeVideoClip([clip, caption_clip], size=resolution)

@@ -141,7 +141,7 @@ export function Sidebar() {
   useEffect(() => {
     api.loadConfig().then((data) => {
       if (data && Object.keys(data).length > 0) setConfig(data);
-    }).catch(() => {});
+    }).catch((e) => console.error('Failed to load config on startup:', e));
   }, []);
 
   const handleSave = async () => {
@@ -149,14 +149,18 @@ export function Sidebar() {
       await api.saveConfig(config);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.error('Failed to save config:', e);
+    }
   };
 
   const handleLoad = async () => {
     try {
       const data = await api.loadConfig();
       if (data && Object.keys(data).length > 0) setConfig(data);
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.error('Failed to load config:', e);
+    }
   };
 
   const currentVoice = Object.entries(VOICES).find(([, v]) => v === config.voice_id)?.[0] || 'Sarah';

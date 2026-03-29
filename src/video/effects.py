@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 from moviepy import ImageClip, vfx
+from PIL import Image
 
 
 def apply_ken_burns(
@@ -61,10 +62,8 @@ def apply_ken_burns(
         cropped = frame[y_start : y_start + crop_h, x_start : x_start + crop_w]
 
         # Resize back to output resolution
-        from PIL import Image
-
         img = Image.fromarray(cropped)
-        img = img.resize((w, h), Image.BILINEAR)
+        img = img.resize((w, h), Image.LANCZOS)
         return np.array(img)
 
     return clip.transform(make_frame, apply_to="mask" if False else []).with_duration(
@@ -79,8 +78,6 @@ def resize_image_to_fill(
 
     Maintains aspect ratio, scales to cover, then center-crops.
     """
-    from PIL import Image
-
     w, h = resolution
     img = Image.open(image_path).convert("RGB")
     img_w, img_h = img.size
@@ -89,7 +86,7 @@ def resize_image_to_fill(
     scale = max(w / img_w, h / img_h)
     new_w = int(img_w * scale)
     new_h = int(img_h * scale)
-    img = img.resize((new_w, new_h), Image.BILINEAR)
+    img = img.resize((new_w, new_h), Image.LANCZOS)
 
     # Center crop
     left = (new_w - w) // 2

@@ -5,6 +5,8 @@ type MessageHandler = (data: Record<string, unknown>) => void;
 export function useSocket(onMessage: MessageHandler) {
   const wsRef = useRef<WebSocket | null>(null);
   const handlersRef = useRef(onMessage);
+  const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
   handlersRef.current = onMessage;
 
   const connect = useCallback(() => {
@@ -23,15 +25,21 @@ export function useSocket(onMessage: MessageHandler) {
       } catch { /* ignore */ }
     };
     ws.onclose = () => {
+      if (!mountedRef.current) return;
       console.log('[ws] disconnected, reconnecting in 2s...');
-      setTimeout(connect, 2000);
+      reconnectRef.current = setTimeout(connect, 2000);
     };
 
     wsRef.current = ws;
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     connect();
-    return () => wsRef.current?.close();
+    return () => {
+      mountedRef.current = false;
+      if (reconnectRef.current) clearTimeout(reconnectRef.current);
+      wsRef.current?.close();
+    };
   }, [connect]);
 }

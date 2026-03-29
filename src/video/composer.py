@@ -22,11 +22,7 @@ from src.log import emit as log
 from src.models import CaptionSegment, Script, VideoConfig
 from src.video.captions import render_captions
 from src.video.effects import apply_ken_burns, resize_image_to_fill
-from src.video.text_overlay import (
-    add_heading_overlay,
-    add_section_number_badge,
-    create_title_card,
-)
+from src.video.text_overlay import create_title_card
 from src.video.transitions import join_clips
 
 console = Console()
@@ -162,9 +158,11 @@ def _build_video_section_clip(
         paths = [video_path]
 
     # Load and resize all clips
+    raw_clips = []
     sub_clips = []
     for vp in paths:
         v = VideoFileClip(str(vp))
+        raw_clips.append(v)
         v = _resize_video_to_fill(v, resolution)
         v = v.without_audio()
         sub_clips.append(v)
@@ -174,7 +172,7 @@ def _build_video_section_clip(
         # Loop if too short
         if vid.duration < total_duration:
             loops_needed = int(total_duration / vid.duration) + 1
-            vid = concatenate_videoclips([vid] * loops_needed)
+            vid = concatenate_videoclips([vid.copy() if i > 0 else vid for i in range(loops_needed)])
         vid = vid.subclipped(0, total_duration)
     else:
         # Join multiple clips with transitions
@@ -183,8 +181,14 @@ def _build_video_section_clip(
         # If combined is too short, loop the whole thing
         if vid.duration < total_duration:
             loops_needed = int(total_duration / vid.duration) + 1
-            vid = concatenate_videoclips([vid] * loops_needed)
+            vid = concatenate_videoclips([vid.copy() if i > 0 else vid for i in range(loops_needed)])
         vid = vid.subclipped(0, total_duration)
+
+    for raw in raw_clips:
+        try:
+            raw.close()
+        except Exception:
+            pass
 
     # Attach narration audio
     audio = audio.with_start(0.5)
@@ -405,26 +409,35 @@ def compose_video(
     # Join with transitions
     log(f"joining {len(clips)} clips with '{config.transition}' transition...")
     final = join_clips(clips, config.transition, config.transition_duration)
-
-    total_dur = sum(c.duration for c in clips)
-    log(f"total duration: {total_dur:.1f}s -- encoding to {output_path.name}...")
+    log(f"total duration: {final.duration:.1f}s -- encoding to {output_path.name}...")
     log("ffmpeg encoding started (this may take several minutes)...")
 
     total_frames = int(final.duration * config.fps)
     frame_logger = _FrameLogger(total_frames=total_frames)
     log(f"encoding {total_frames} frames at {config.fps}fps...")
 
-    final.write_videofile(
-        str(output_path),
-        fps=config.fps,
-        codec="libx264",
-        audio_codec="aac",
-        threads=os.cpu_count() or 8,
-        preset=config.encoding_preset,
-        pixel_format="yuv420p",
-        ffmpeg_params=["-c:v", "h264_videotoolbox"] if platform.system() == "Darwin" else [],
-        logger=frame_logger,
-    )
+    if platform.system() == "Darwin":
+        final.write_videofile(
+            str(output_path),
+            fps=config.fps,
+            codec="h264_videotoolbox",
+            audio_codec="aac",
+            threads=os.cpu_count() or 8,
+            preset=config.encoding_preset,
+            pixel_format="yuv420p",
+            logger=frame_logger,
+        )
+    else:
+        final.write_videofile(
+            str(output_path),
+            fps=config.fps,
+            codec="libx264",
+            audio_codec="aac",
+            threads=os.cpu_count() or 8,
+            preset=config.encoding_preset,
+            pixel_format="yuv420p",
+            logger=frame_logger,
+        )
 
     # Clean up
     for clip in clips:

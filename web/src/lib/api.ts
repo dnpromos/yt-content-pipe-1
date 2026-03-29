@@ -119,5 +119,5 @@ export const api = {
 
   killAll: () => post<{ ok: boolean; cancelled: number }>('/api/kill-all', {}),
 
-  fileUrl: (path: string) => `${BASE}/api/files/${path}?t=${Date.now()}`,
+  fileUrl: (path: string) => `${BASE}/api/files/${path}`,
 };

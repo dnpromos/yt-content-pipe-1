@@ -227,7 +227,7 @@ function SpecialBlock({ label, kind, narration, imagePrompt, imagePath, imagePat
 
   return (
     <div className="bg-card border border-edge rounded-lg p-4 space-y-2">
-      <div className="text-[10px] uppercase tracking-wider text-accent font-semibold">{label}</div>
+      <div className="text-[10px] uppercase tracking-wider text-ink-3">{label}</div>
       <textarea
         value={narration}
         onChange={(e) => onNarrationChange(e.target.value)}
@@ -244,7 +244,7 @@ function SpecialBlock({ label, kind, narration, imagePrompt, imagePath, imagePat
       {allImages.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2">
           {allImages.map((p, i) => (
-            <div key={i} className="relative group">
+            <div key={p} className="relative group">
               <img src={api.fileUrl(p)} alt={`${kind} ${i + 1}`} onClick={() => openLightbox(api.fileUrl(p), 'image')} className="w-32 h-auto rounded border border-edge cursor-zoom-in" />
               <button onClick={() => handleDeleteImage(p)} title="delete image"
                 className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center bg-red-900/80 hover:bg-red-700 rounded text-red-300 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
@@ -260,7 +260,7 @@ function SpecialBlock({ label, kind, narration, imagePrompt, imagePath, imagePat
       {/* Intro video clips */}
       {videoPaths && videoPaths.length > 0 && (
         <div className="mt-2">
-          <div className="text-[10px] uppercase tracking-wider text-accent/60 mb-1">
+          <div className="text-[10px] uppercase tracking-wider text-accent mb-1">
             intro video clips ({videoPaths.length})
           </div>
           <div className="flex flex-wrap gap-2">
@@ -389,8 +389,8 @@ function SectionCard({ section, onChange, onRetry, busy }: {
           />
         </div>
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${hasAudio ? 'bg-emerald-500' : 'bg-red-500'}`} title={hasAudio ? 'audio ok' : 'audio missing'} />
-          <span className={`w-2 h-2 rounded-full ${hasImage ? 'bg-emerald-500' : 'bg-red-500'}`} title={hasImage ? 'image ok' : 'image missing'} />
+          <span className={`w-2 h-2 rounded-full ${hasAudio ? 'bg-emerald-500' : 'bg-edge-strong'}`} title={hasAudio ? 'audio ok' : 'audio missing'} />
+          <span className={`w-2 h-2 rounded-full ${hasImage ? 'bg-emerald-500' : 'bg-edge-strong'}`} title={hasImage ? 'image ok' : 'image missing'} />
           {missingCount > 0 && (
             <button onClick={handleGenerateMissing} disabled={busy}
               title={`generate ${missingCount} missing image(s) (need ${requiredImages}, have ${currentImages})`}
@@ -399,7 +399,7 @@ function SectionCard({ section, onChange, onRetry, busy }: {
             </button>
           )}
           <button onClick={onRetry} disabled={busy} title="regenerate all images"
-            className="flex items-center gap-1 text-xs text-ink-4 hover:text-ink-2 disabled:opacity-40 cursor-pointer">
+            className="flex items-center gap-1 text-xs text-ink-3 hover:text-ink-2 disabled:opacity-40 cursor-pointer">
             <RefreshCw size={12} />
           </button>
         </div>
@@ -429,12 +429,12 @@ function SectionCard({ section, onChange, onRetry, busy }: {
       {/* Video gallery */}
       {section.video_paths && section.video_paths.length > 0 && (
         <div className="mt-2">
-          <div className="text-[10px] uppercase tracking-wider text-accent/60 mb-1">
+          <div className="text-[10px] uppercase tracking-wider text-accent mb-1">
             AI video clips ({section.video_paths.length})
           </div>
           <div className="flex flex-wrap gap-2">
             {section.video_paths.map((p, i) => (
-              <div key={i} className="relative group">
+              <div key={p} className="relative group">
                 <video src={api.fileUrl(p)} controls onClick={(e) => { e.preventDefault(); openLightbox(api.fileUrl(p), 'video'); }} className="w-40 rounded border border-edge cursor-zoom-in" />
                 {i === 0 && (
                   <div className="absolute top-1 left-1 bg-accent/80 text-[8px] text-white px-1 rounded">primary</div>
@@ -449,7 +449,7 @@ function SectionCard({ section, onChange, onRetry, busy }: {
       {section.image_paths.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2">
           {section.image_paths.map((p, i) => (
-            <div key={i} className="relative group">
+            <div key={p} className="relative group">
               <img src={api.fileUrl(p)} alt={`section ${section.number} img ${i + 1}`}
                 onClick={() => openLightbox(api.fileUrl(p), 'image')} className="w-28 h-auto rounded border border-edge cursor-zoom-in" />
               <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useSocket } from './lib/useSocket';
 import { useStore } from './lib/store';
 import type { ScriptData, UiStep } from './lib/store';
@@ -14,6 +14,36 @@ import { CredentialsPopover } from './components/CredentialsPopover';
 import { Lightbox } from './components/Lightbox';
 import { api } from './lib/api';
 import { FolderOpen, OctagonX, RotateCcw } from 'lucide-react';
+
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-screen bg-cream gap-4">
+          <div className="text-red-400 text-sm font-medium">Something went wrong</div>
+          <div className="text-ink-4 text-xs font-mono max-w-lg text-center">{this.state.error.message}</div>
+          <button
+            onClick={() => this.setState({ error: null })}
+            className="px-4 py-2 bg-mist hover:bg-edge rounded-lg text-xs text-ink-2 cursor-pointer"
+          >
+            Try again
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function App() {
   const { addLog, setScript, setRunId, setStage, setVideoPath, setTaskId, uiStep, setUiStep, resetRun } = useStore();
@@ -111,4 +141,10 @@ function App() {
   );
 }
 
-export default App;
+export default function AppWithBoundary() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
+}

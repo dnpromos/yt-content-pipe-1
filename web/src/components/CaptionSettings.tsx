@@ -56,8 +56,10 @@ function CaptionPreview({ config }: { config: ConfigPayload }) {
   const isPortrait = config.image_aspect === '9:16';
   const fontFamily = FONT_DISPLAY[config.caption_font] || 'sans-serif';
   const [w, h] = config.video_resolution;
-  const shortSide = Math.min(w, h);
-  const autoSize = Math.max(32, Math.floor(shortSide * 0.05));
+  const isPortraitRes = h > w;
+  const autoSize = isPortraitRes
+    ? Math.max(36, Math.floor(w * 0.08))
+    : Math.max(36, Math.floor(h * 0.055));
   const actualSize = config.caption_font_size > 0 ? config.caption_font_size : autoSize;
   const scale = isPortrait ? 160 / w : 320 / w;
   const fontSize = Math.max(10, Math.round(actualSize * scale));

@@ -25,7 +25,6 @@ def crossfade(clips: list[VideoClip], duration: float = 0.8) -> VideoClip:
     for i, clip in enumerate(clips):
         clips[i] = clip.with_start(current_time)
         if i < len(clips) - 1:
-            clips[i] = clips[i].with_effects([])  # ensure no leftover effects
             current_time += clip.duration - duration
         else:
             current_time += clip.duration

@@ -3,7 +3,7 @@ import { api } from '../lib/api';
 import { Film, Loader, CheckCircle, Download } from 'lucide-react';
 
 export function StepAssemble() {
-  const { script, config, runId, stage, setStage, setTaskId, addLog, clearLogs, videoPath } = useStore();
+  const { script, config, runId, stage, setStage, setTaskId, addLog, videoPath } = useStore();
   const busy = stage === 'assembling';
 
   if (!script) {
@@ -16,7 +16,6 @@ export function StepAssemble() {
 
   const handleAssemble = async () => {
     if (!runId) return;
-    clearLogs();
     addLog('assembling video...');
     setStage('assembling');
     try {
@@ -75,15 +74,15 @@ export function StepAssemble() {
       {/* Bottom action bar */}
       <div className="flex items-center gap-3 pt-2">
         {stage === 'video_done' && (
-          <button onClick={handleAssemble}
-            className="flex items-center gap-2 px-5 py-2.5 bg-mist hover:bg-edge rounded-lg text-xs text-ink-2 cursor-pointer transition-colors">
+          <button onClick={handleAssemble} disabled={busy}
+            className="flex items-center gap-2 px-5 py-2.5 bg-mist hover:bg-edge disabled:opacity-40 rounded-lg text-xs text-ink-2 cursor-pointer transition-colors">
             <Film size={14} /> Reassemble
           </button>
         )}
         <div className="flex-1" />
         {stage === 'video_done' && videoPath && (
           <a href={api.fileUrl(videoPath)} download
-            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium text-white cursor-pointer transition-all shadow-lg shadow-emerald-600/20">
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium text-white cursor-pointer transition-all shadow-lg shadow-emerald-500/20">
             <Download size={14} /> Download Video
           </a>
         )}

@@ -193,6 +193,7 @@ function SpecialAssetBlock({ label, kind, audioPath, imagePath, imagePaths, vide
 }) {
   const { config, runId, addLog, setScript, setTaskId } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deletingPath, setDeletingPath] = useState<string | null>(null);
 
   const allImages: string[] = [];
   if (imagePath) allImages.push(imagePath);
@@ -223,11 +224,13 @@ function SpecialAssetBlock({ label, kind, audioPath, imagePath, imagePaths, vide
   };
 
   const handleDelete = async (path: string) => {
-    if (!runId) return;
+    if (!runId || deletingPath) return;
+    setDeletingPath(path);
     try {
       const res = await api.deleteImage(runId, path);
       setScript(res.script as unknown as ScriptData);
-    } catch (e) { addLog(`error: ${e}`); }
+    } catch (e) { addLog(`error deleting image: ${e}`); }
+    finally { setDeletingPath(null); }
   };
 
   return (
@@ -258,8 +261,8 @@ function SpecialAssetBlock({ label, kind, audioPath, imagePath, imagePaths, vide
           {allImages.map((p, i) => (
             <div key={p} className="relative group">
               <img src={api.fileUrl(p)} alt={`${kind} ${i}`} onClick={() => openLightbox(api.fileUrl(p), 'image')} className="h-24 w-auto rounded-lg border border-edge object-cover cursor-zoom-in" />
-              <button onClick={() => handleDelete(p)}
-                className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center bg-red-900/80 hover:bg-red-700 rounded text-red-300 text-[8px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <button onClick={() => handleDelete(p)} disabled={deletingPath === p}
+                className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center bg-red-900/80 hover:bg-red-700 disabled:opacity-40 rounded text-red-300 text-[8px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 <Trash2 size={8} />
               </button>
               {i === 0 && <div className="absolute bottom-0.5 left-0.5 bg-emerald-600/80 text-[7px] text-white px-1 rounded">primary</div>}
@@ -282,6 +285,7 @@ function SectionAssetBlock({ section, busy }: { section: ReturnType<typeof useSt
   const { config, runId, addLog, setScript, setTaskId } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [expanded, setExpanded] = useState(false);
+  const [deletingPath, setDeletingPath] = useState<string | null>(null);
 
   const isVideo = config.section_media_type === 'video';
   const hasAudio = !!section.audio_path;
@@ -310,11 +314,13 @@ function SectionAssetBlock({ section, busy }: { section: ReturnType<typeof useSt
   };
 
   const handleDeleteImage = async (imgPath: string) => {
-    if (!runId) return;
+    if (!runId || deletingPath) return;
+    setDeletingPath(imgPath);
     try {
       const res = await api.deleteImage(runId, imgPath);
       setScript(res.script as unknown as ScriptData);
-    } catch (e) { addLog(`error: ${e}`); }
+    } catch (e) { addLog(`error deleting image: ${e}`); }
+    finally { setDeletingPath(null); }
   };
 
   const handleRemoveFromSection = async (imgPath: string) => {
@@ -390,8 +396,8 @@ function SectionAssetBlock({ section, busy }: { section: ReturnType<typeof useSt
               <div className="absolute top-0.5 right-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => handleRemoveFromSection(p)} title="remove from section"
                   className="w-4 h-4 flex items-center justify-center bg-card/80 hover:bg-edge rounded text-ink-3 text-[8px] cursor-pointer">✕</button>
-                <button onClick={() => handleDeleteImage(p)} title="delete file"
-                  className="w-4 h-4 flex items-center justify-center bg-red-900/80 hover:bg-red-700 rounded text-red-300 text-[8px] cursor-pointer">
+                <button onClick={() => handleDeleteImage(p)} disabled={deletingPath === p} title="delete file"
+                  className="w-4 h-4 flex items-center justify-center bg-red-900/80 hover:bg-red-700 disabled:opacity-40 rounded text-red-300 text-[8px] cursor-pointer">
                   <Trash2 size={8} />
                 </button>
               </div>

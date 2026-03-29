@@ -520,7 +520,8 @@ async def api_full_pipeline(req: GenerateScriptRequest):
                 return
 
             await _broadcast_task(task_id, {"status": "running", "step": "video"})
-            video_path = assemble_video(config, script, run_dir)
+            loop = asyncio.get_event_loop()
+            video_path = await loop.run_in_executor(None, assemble_video, config, script, run_dir)
             await _broadcast_task(task_id, {
                 "status": "done",
                 "step": "video",
@@ -684,6 +685,10 @@ async def api_delete_image(req: DeleteImageRequest):
             section.image_path = section.image_paths[0] if section.image_paths else None
     if script.intro_image_path and str(Path(str(script.intro_image_path)).resolve()) == img_str:
         script.intro_image_path = None
+    script.intro_image_paths = [
+        p for p in (script.intro_image_paths or [])
+        if str(Path(str(p)).resolve()) != img_str
+    ]
     if script.outro_image_path and str(Path(str(script.outro_image_path)).resolve()) == img_str:
         script.outro_image_path = None
     save_script(script, run_dir)

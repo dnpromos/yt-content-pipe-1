@@ -397,6 +397,12 @@ async def generate_assets(
         elif task_type == "outro_image" and not is_err:
             script.outro_image_path = outro_image_path
 
+    # Clear stale captions before re-transcribing
+    script.intro_captions = []
+    script.outro_captions = []
+    for sec in script.sections:
+        sec.captions = []
+
     # Transcribe audio for captions (if enabled and CDN URLs available)
     if config.video.captions_enabled:
         whisper = WiroWhisperProvider(config.voice)
