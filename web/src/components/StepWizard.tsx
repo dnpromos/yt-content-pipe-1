@@ -36,25 +36,25 @@ export function StepWizard() {
         return (
           <div key={idx} className="flex items-center">
             {idx > 0 && (
-              <div className={`w-16 h-px mx-1 ${state === 'disabled' ? 'bg-neutral-800' : idx <= uiStep ? 'bg-indigo-500' : 'bg-neutral-700'}`} />
+              <div className={`w-16 h-px mx-1 ${state === 'disabled' ? 'bg-edge' : idx <= uiStep ? 'bg-accent' : 'bg-edge-strong'}`} />
             )}
             <button
               onClick={() => canNavigate(idx as UiStep) && setUiStep(idx as UiStep)}
               disabled={!canNavigate(idx as UiStep)}
               className={`
                 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer
-                ${state === 'active' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : ''}
-                ${state === 'completed' ? 'bg-neutral-800 text-indigo-400 hover:bg-neutral-700' : ''}
-                ${state === 'upcoming' ? 'bg-neutral-900 text-neutral-400 hover:bg-neutral-800' : ''}
-                ${state === 'disabled' ? 'bg-neutral-900/50 text-neutral-700 cursor-not-allowed' : ''}
+                ${state === 'active' ? 'bg-accent text-white shadow-lg shadow-accent/20' : ''}
+                ${state === 'completed' ? 'bg-mist text-accent hover:bg-edge' : ''}
+                ${state === 'upcoming' ? 'bg-card text-ink-3 hover:bg-mist' : ''}
+                ${state === 'disabled' ? 'bg-card/50 text-ink-5 cursor-not-allowed' : ''}
               `}
             >
               <span className={`
                 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold
                 ${state === 'active' ? 'bg-white/20 text-white' : ''}
-                ${state === 'completed' ? 'bg-indigo-500/20 text-indigo-400' : ''}
-                ${state === 'upcoming' ? 'bg-neutral-800 text-neutral-500' : ''}
-                ${state === 'disabled' ? 'bg-neutral-800/50 text-neutral-700' : ''}
+                ${state === 'completed' ? 'bg-accent/20 text-accent' : ''}
+                ${state === 'upcoming' ? 'bg-mist text-ink-3' : ''}
+                ${state === 'disabled' ? 'bg-mist/50 text-ink-5' : ''}
               `}>
                 {idx + 1}
               </span>

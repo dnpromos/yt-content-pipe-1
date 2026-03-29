@@ -10,15 +10,15 @@ export function StepAssets() {
 
   if (!script) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 text-neutral-600 text-sm">
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 text-ink-4 text-sm">
         {stage === 'generating_assets' ? (
           <>
             <div className="flex items-center gap-3">
-              <Loader size={14} className="animate-spin text-indigo-400" />
+              <Loader size={14} className="animate-spin text-accent" />
               Generating assets...
             </div>
             <button onClick={() => { setStage('scripted'); setUiStep(2); setTaskId(null); }}
-              className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-xs text-neutral-400 cursor-pointer transition-colors">
+              className="px-4 py-2 bg-mist hover:bg-edge rounded-lg text-xs text-ink-3 cursor-pointer transition-colors">
               Cancel &amp; go back
             </button>
           </>
@@ -26,7 +26,7 @@ export function StepAssets() {
           <>
             <span>No script available.</span>
             <button onClick={() => setUiStep(1)}
-              className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-xs text-neutral-300 cursor-pointer transition-colors">
+              className="px-4 py-2 bg-mist hover:bg-edge rounded-lg text-xs text-ink-2 cursor-pointer transition-colors">
               Go to Topic
             </button>
           </>
@@ -83,12 +83,12 @@ export function StepAssets() {
   return (
     <div className="max-w-5xl mx-auto w-full px-8 space-y-5">
       {/* Progress bar header */}
-      <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-5 space-y-4">
+      <div className="bg-card border border-edge rounded-xl p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-neutral-300">Asset Progress</h3>
+          <h3 className="text-sm font-semibold text-ink-2">Asset Progress</h3>
           <div className="flex items-center gap-3">
             {stage === 'generating_assets' && (
-              <div className="flex items-center gap-2 text-xs text-amber-400">
+              <div className="flex items-center gap-2 text-xs text-amber-600">
                 <Loader size={12} className="animate-spin" />
                 Generating... ({liveCount} events)
               </div>
@@ -114,23 +114,23 @@ export function StepAssets() {
         <div className="flex gap-2 pt-1">
           {(stage === 'scripted') && (
             <button onClick={() => handleGenerateAssets(false)} disabled={busy}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 rounded-lg text-xs font-medium text-white cursor-pointer transition-all shadow-lg shadow-indigo-500/20">
+              className="flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-40 rounded-lg text-xs font-medium text-white cursor-pointer transition-all shadow-lg shadow-accent/20">
               Generate Assets
             </button>
           )}
           {(stage === 'assets_done' || stage === 'video_done') && (
             <>
               <button onClick={handleRetryMissing} disabled={busy}
-                className="flex items-center gap-1.5 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-40 rounded-lg text-xs text-neutral-300 cursor-pointer transition-colors">
+                className="flex items-center gap-1.5 px-3 py-2 bg-mist hover:bg-edge disabled:opacity-40 rounded-lg text-xs text-ink-2 cursor-pointer transition-colors">
                 <RefreshCw size={12} /> Retry missing
               </button>
               <button onClick={() => handleGenerateAssets(true)} disabled={busy}
-                className="flex items-center gap-1.5 px-3 py-2 bg-amber-600/20 hover:bg-amber-600/30 border border-amber-600/30 disabled:opacity-40 rounded-lg text-xs text-amber-300 cursor-pointer transition-colors">
+                className="flex items-center gap-1.5 px-3 py-2 bg-amber-100 hover:bg-amber-200 border border-amber-300 disabled:opacity-40 rounded-lg text-xs text-amber-800 cursor-pointer transition-colors">
                 <RefreshCw size={12} /> Regenerate all
               </button>
               <div className="flex-1" />
               <button onClick={() => setUiStep(4)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-medium text-white cursor-pointer transition-all shadow-lg shadow-indigo-500/20">
+                className="flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-hover rounded-lg text-xs font-medium text-white cursor-pointer transition-all shadow-lg shadow-accent/20">
                 Assemble Video <ArrowRight size={14} />
               </button>
             </>
@@ -176,11 +176,11 @@ function AssetRow({ label, current, total }: { label: string; current: number; t
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-[10px]">
-        <span className={done ? 'text-neutral-300' : 'text-neutral-500'}>{label}</span>
-        <span className={done ? 'text-emerald-400 font-medium' : 'text-neutral-600'}>{current}/{total}</span>
+        <span className={done ? 'text-ink-2' : 'text-ink-3'}>{label}</span>
+        <span className={done ? 'text-emerald-600 font-medium' : 'text-ink-4'}>{current}/{total}</span>
       </div>
-      <div className="h-1 bg-neutral-800 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full transition-all duration-500 ${done ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${pct}%` }} />
+      <div className="h-1 bg-edge rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-500 ${done ? 'bg-emerald-500' : 'bg-accent'}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -231,22 +231,22 @@ function SpecialAssetBlock({ label, kind, audioPath, imagePath, imagePaths, vide
   };
 
   return (
-    <div className="bg-neutral-900/30 border border-neutral-800/50 rounded-xl p-4 space-y-3">
+    <div className="bg-card border border-edge/50 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-wider text-indigo-400 font-semibold">{label}</span>
-          <span className="flex items-center gap-1 text-[10px] text-neutral-600">
+          <span className="text-[10px] uppercase tracking-wider text-accent font-semibold">{label}</span>
+          <span className="flex items-center gap-1 text-[10px] text-ink-4">
             {audioPath ? <Volume2 size={10} className="text-emerald-500" /> : <Volume2 size={10} />}
             {audioPath ? 'audio ✓' : 'no audio'}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
           <button onClick={handleRegenerate} disabled={busy}
-            className="flex items-center gap-1 px-2 py-1 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-40 rounded text-[10px] text-neutral-300 cursor-pointer transition-colors">
+            className="flex items-center gap-1 px-2 py-1 bg-mist hover:bg-edge disabled:opacity-40 rounded text-[10px] text-ink-2 cursor-pointer transition-colors">
             <ImagePlus size={10} /> {imagePath ? 'regen' : 'generate'}
           </button>
           <button onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1 px-2 py-1 bg-neutral-800 hover:bg-neutral-700 rounded text-[10px] text-neutral-300 cursor-pointer transition-colors">
+            className="flex items-center gap-1 px-2 py-1 bg-mist hover:bg-edge rounded text-[10px] text-ink-2 cursor-pointer transition-colors">
             <Upload size={10} /> upload
           </button>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
@@ -257,7 +257,7 @@ function SpecialAssetBlock({ label, kind, audioPath, imagePath, imagePaths, vide
         <div className="flex flex-wrap gap-2">
           {allImages.map((p, i) => (
             <div key={p} className="relative group">
-              <img src={api.fileUrl(p)} alt={`${kind} ${i}`} onClick={() => openLightbox(api.fileUrl(p), 'image')} className="h-24 w-auto rounded-lg border border-neutral-800 object-cover cursor-zoom-in" />
+              <img src={api.fileUrl(p)} alt={`${kind} ${i}`} onClick={() => openLightbox(api.fileUrl(p), 'image')} className="h-24 w-auto rounded-lg border border-edge object-cover cursor-zoom-in" />
               <button onClick={() => handleDelete(p)}
                 className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center bg-red-900/80 hover:bg-red-700 rounded text-red-300 text-[8px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 <Trash2 size={8} />
@@ -266,7 +266,7 @@ function SpecialAssetBlock({ label, kind, audioPath, imagePath, imagePaths, vide
             </div>
           ))}
           {videoPaths && videoPaths.map((p) => (
-            <video key={p} src={api.fileUrl(p)} controls onClick={(e) => { e.preventDefault(); openLightbox(api.fileUrl(p), 'video'); }} className="h-24 rounded-lg border border-neutral-800 cursor-zoom-in" />
+            <video key={p} src={api.fileUrl(p)} controls onClick={(e) => { e.preventDefault(); openLightbox(api.fileUrl(p), 'video'); }} className="h-24 rounded-lg border border-edge cursor-zoom-in" />
           ))}
         </div>
       )}
@@ -337,15 +337,15 @@ function SectionAssetBlock({ section, busy }: { section: ReturnType<typeof useSt
   };
 
   return (
-    <div className="bg-neutral-900/30 border border-neutral-800/50 rounded-xl p-4 space-y-3">
+    <div className="bg-card border border-edge/50 rounded-xl p-4 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="w-7 h-7 flex items-center justify-center bg-indigo-500/20 rounded-lg text-xs font-bold text-indigo-400">
+          <span className="w-7 h-7 flex items-center justify-center bg-accent/20 rounded-lg text-xs font-bold text-accent">
             {section.number}
           </span>
-          <span className="text-sm font-medium text-neutral-300">{section.heading}</span>
-          <div className="flex items-center gap-2 text-[10px] text-neutral-600">
+          <span className="text-sm font-medium text-ink-2">{section.heading}</span>
+          <div className="flex items-center gap-2 text-[10px] text-ink-4">
             <span className="flex items-center gap-0.5">
               {hasAudio ? <CheckCircle size={10} className="text-emerald-500" /> : <AlertCircle size={10} />} audio
             </span>
@@ -357,19 +357,19 @@ function SectionAssetBlock({ section, busy }: { section: ReturnType<typeof useSt
         </div>
         <div className="flex items-center gap-1.5">
           <button onClick={handleRetry} disabled={busy}
-            className="flex items-center gap-1 px-2 py-1 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-40 rounded text-[10px] text-neutral-300 cursor-pointer transition-colors">
+            className="flex items-center gap-1 px-2 py-1 bg-mist hover:bg-edge disabled:opacity-40 rounded text-[10px] text-ink-2 cursor-pointer transition-colors">
             <RefreshCw size={10} /> regen
           </button>
           <button onClick={handleGenerateExtra} disabled={busy}
-            className="flex items-center gap-1 px-2 py-1 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-40 rounded text-[10px] text-neutral-300 cursor-pointer transition-colors">
+            className="flex items-center gap-1 px-2 py-1 bg-mist hover:bg-edge disabled:opacity-40 rounded text-[10px] text-ink-2 cursor-pointer transition-colors">
             <ImagePlus size={10} /> +1
           </button>
           <button onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1 px-2 py-1 bg-neutral-800 hover:bg-neutral-700 rounded text-[10px] text-neutral-300 cursor-pointer transition-colors">
+            className="flex items-center gap-1 px-2 py-1 bg-mist hover:bg-edge rounded text-[10px] text-ink-2 cursor-pointer transition-colors">
             <Upload size={10} />
           </button>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
-          <button onClick={() => setExpanded(!expanded)} className="text-neutral-600 hover:text-neutral-300 text-xs cursor-pointer px-1">
+          <button onClick={() => setExpanded(!expanded)} className="text-ink-4 hover:text-ink-2 text-xs cursor-pointer px-1">
             {expanded ? '▼' : '▶'}
           </button>
         </div>
@@ -380,16 +380,16 @@ function SectionAssetBlock({ section, busy }: { section: ReturnType<typeof useSt
         <div className="flex flex-wrap gap-2">
           {section.video_paths && section.video_paths.map((p: string, i: number) => (
             <div key={p} className="relative group">
-              <video src={api.fileUrl(p)} controls onClick={(e) => { e.preventDefault(); openLightbox(api.fileUrl(p), 'video'); }} className="h-24 rounded-lg border border-neutral-800 cursor-zoom-in" />
-              {i === 0 && <div className="absolute top-0.5 left-0.5 bg-indigo-600/80 text-[7px] text-white px-1 rounded">primary</div>}
+              <video src={api.fileUrl(p)} controls onClick={(e) => { e.preventDefault(); openLightbox(api.fileUrl(p), 'video'); }} className="h-24 rounded-lg border border-edge cursor-zoom-in" />
+              {i === 0 && <div className="absolute top-0.5 left-0.5 bg-accent/80 text-[7px] text-white px-1 rounded">primary</div>}
             </div>
           ))}
           {section.image_paths.map((p: string, i: number) => (
             <div key={p} className="relative group">
-              <img src={api.fileUrl(p)} alt={`s${section.number} img ${i}`} onClick={() => openLightbox(api.fileUrl(p), 'image')} className="h-24 w-auto rounded-lg border border-neutral-800 object-cover cursor-zoom-in" />
+              <img src={api.fileUrl(p)} alt={`s${section.number} img ${i}`} onClick={() => openLightbox(api.fileUrl(p), 'image')} className="h-24 w-auto rounded-lg border border-edge object-cover cursor-zoom-in" />
               <div className="absolute top-0.5 right-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => handleRemoveFromSection(p)} title="remove from section"
-                  className="w-4 h-4 flex items-center justify-center bg-neutral-900/80 hover:bg-neutral-700 rounded text-neutral-400 text-[8px] cursor-pointer">✕</button>
+                  className="w-4 h-4 flex items-center justify-center bg-card/80 hover:bg-edge rounded text-ink-3 text-[8px] cursor-pointer">✕</button>
                 <button onClick={() => handleDeleteImage(p)} title="delete file"
                   className="w-4 h-4 flex items-center justify-center bg-red-900/80 hover:bg-red-700 rounded text-red-300 text-[8px] cursor-pointer">
                   <Trash2 size={8} />
@@ -408,10 +408,10 @@ function SectionAssetBlock({ section, busy }: { section: ReturnType<typeof useSt
 
       {/* Expanded: prompts */}
       {expanded && (
-        <div className="space-y-1 border-t border-neutral-800/50 pt-2">
-          <div className="text-[10px] uppercase tracking-wider text-neutral-600">Image prompts</div>
+        <div className="space-y-1 border-t border-edge/50 pt-2">
+          <div className="text-[10px] uppercase tracking-wider text-ink-4">Image prompts</div>
           {section.image_prompts.map((prompt: string, i: number) => (
-            <p key={i} className="text-xs text-neutral-500 bg-neutral-950 rounded px-3 py-1.5">{prompt}</p>
+            <p key={i} className="text-xs text-ink-3 bg-cream rounded px-3 py-1.5">{prompt}</p>
           ))}
         </div>
       )}

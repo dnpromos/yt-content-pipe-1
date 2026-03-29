@@ -76,21 +76,21 @@ export function StepTopic() {
     <div className="max-w-5xl mx-auto w-full px-8 space-y-8">
       {/* Topic input */}
       <div className="space-y-2">
-        <label className="block text-xs uppercase tracking-wider text-neutral-400 font-medium">
+        <label className="block text-xs uppercase tracking-wider text-ink-3 font-medium">
           What's your video about?
         </label>
         <input
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           placeholder="e.g. Top 5 AI Tools in 2026"
-          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-5 py-4 text-lg text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all"
+          className="w-full bg-card border border-edge rounded-xl px-5 py-4 text-lg text-ink placeholder:text-ink-4 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
           onKeyDown={(e) => e.key === 'Enter' && !busy && handleGenerate()}
         />
       </div>
 
       {/* Video length selector */}
       <div className="space-y-3">
-        <label className="block text-xs uppercase tracking-wider text-neutral-400 font-medium">
+        <label className="block text-xs uppercase tracking-wider text-ink-3 font-medium">
           Video length
         </label>
         <div className="grid grid-cols-3 gap-3">
@@ -104,30 +104,30 @@ export function StepTopic() {
                 className={`
                   relative flex flex-col items-start gap-3 p-4 rounded-xl border-2 text-left transition-all cursor-pointer
                   ${active
-                    ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/10'
-                    : 'border-neutral-800 bg-neutral-900 hover:border-neutral-700 hover:bg-neutral-800/50'
+                    ? 'border-accent bg-accent/10 shadow-lg shadow-accent/10'
+                    : 'border-edge bg-card hover:border-edge-strong hover:bg-mist/50'
                   }
                 `}
               >
                 <div className="flex items-center gap-2">
-                  <Icon size={16} className={active ? 'text-indigo-400' : 'text-neutral-500'} />
-                  <span className={`text-sm font-semibold ${active ? 'text-indigo-300' : 'text-neutral-300'}`}>
+                  <Icon size={16} className={active ? 'text-accent' : 'text-ink-3'} />
+                  <span className={`text-sm font-semibold ${active ? 'text-accent' : 'text-ink-2'}`}>
                     {preset.label}
                   </span>
                 </div>
                 <div className="space-y-1">
-                  <div className={`text-lg font-bold ${active ? 'text-white' : 'text-neutral-200'}`}>
+                  <div className={`text-lg font-bold ${active ? 'text-ink' : 'text-ink'}`}>
                     {preset.duration}
                   </div>
-                  <div className={`text-xs ${active ? 'text-indigo-300/80' : 'text-neutral-500'}`}>
+                  <div className={`text-xs ${active ? 'text-accent/80' : 'text-ink-3'}`}>
                     {preset.sections}
                   </div>
                 </div>
-                <p className={`text-xs leading-relaxed ${active ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                <p className={`text-xs leading-relaxed ${active ? 'text-ink-2' : 'text-ink-4'}`}>
                   {preset.detail}
                 </p>
                 {active && (
-                  <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-indigo-400" />
+                  <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-accent" />
                 )}
               </button>
             );
@@ -137,7 +137,7 @@ export function StepTopic() {
 
       {/* Sections count */}
       <div className="flex items-center gap-4">
-        <label className="text-xs uppercase tracking-wider text-neutral-400 font-medium whitespace-nowrap">
+        <label className="text-xs uppercase tracking-wider text-ink-3 font-medium whitespace-nowrap">
           Sections
         </label>
         <input
@@ -145,24 +145,24 @@ export function StepTopic() {
           min={2} max={15}
           value={numSections}
           onChange={(e) => setNumSections(Number(e.target.value))}
-          className="flex-1 accent-indigo-500"
+          className="flex-1 accent-accent"
         />
-        <span className="w-8 text-center text-sm font-bold text-neutral-200">{numSections}</span>
+        <span className="w-8 text-center text-sm font-bold text-ink">{numSections}</span>
       </div>
 
       {/* Advanced options toggle */}
       <button
         onClick={() => setShowAdvanced(!showAdvanced)}
-        className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 cursor-pointer transition-colors"
+        className="flex items-center gap-1.5 text-xs text-ink-3 hover:text-ink-2 cursor-pointer transition-colors"
       >
         {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         Advanced options
       </button>
 
       {showAdvanced && (
-        <div className="space-y-4 bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
+        <div className="space-y-4 bg-card border border-edge rounded-xl p-4">
           <div className="space-y-1.5">
-            <label className="block text-xs uppercase tracking-wider text-neutral-500">
+            <label className="block text-xs uppercase tracking-wider text-ink-3">
               Section headings (one per line)
             </label>
             <textarea
@@ -170,11 +170,11 @@ export function StepTopic() {
               onChange={(e) => setSubtitles(e.target.value)}
               placeholder={"FlowState.ai\nMoodBoard Studio\nCodeWhisper Pro"}
               rows={3}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-sm text-neutral-300 placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 resize-y"
+              className="w-full bg-cream border border-edge rounded-lg px-4 py-3 text-sm text-ink-2 placeholder:text-ink-5 focus:outline-none focus:border-edge-strong resize-y"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-xs uppercase tracking-wider text-neutral-500">
+            <label className="block text-xs uppercase tracking-wider text-ink-3">
               Custom instructions
             </label>
             <textarea
@@ -182,7 +182,7 @@ export function StepTopic() {
               onChange={(e) => setCustomInstructions(e.target.value)}
               placeholder="e.g. Write the script based on this article: ...&#10;Or: Focus on beginner-friendly explanations"
               rows={4}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-sm text-neutral-300 placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 resize-y"
+              className="w-full bg-cream border border-edge rounded-lg px-4 py-3 text-sm text-ink-2 placeholder:text-ink-5 focus:outline-none focus:border-edge-strong resize-y"
             />
           </div>
         </div>
@@ -193,7 +193,7 @@ export function StepTopic() {
         <button
           onClick={handleGenerate}
           disabled={busy || !topic.trim()}
-          className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-sm font-medium text-neutral-200 cursor-pointer transition-all"
+          className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-sm font-medium text-white cursor-pointer transition-all shadow-lg shadow-accent/20"
         >
           Start Generating Script
         </button>

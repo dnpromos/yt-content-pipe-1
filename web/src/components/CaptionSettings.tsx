@@ -35,7 +35,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <label className="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1">{children}</label>;
+  return <label className="block text-[10px] uppercase tracking-wider text-ink-3 mb-1">{children}</label>;
 }
 
 function ColorInput({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
@@ -44,9 +44,9 @@ function ColorInput({ value, onChange, label }: { value: string; onChange: (v: s
       <Label>{label}</Label>
       <div className="flex items-center gap-2">
         <input type="color" value={value} onChange={(e) => onChange(e.target.value)}
-          className="w-8 h-8 rounded cursor-pointer border border-neutral-700 bg-transparent" />
+          className="w-8 h-8 rounded cursor-pointer border border-edge bg-transparent" />
         <input type="text" value={value} onChange={(e) => onChange(e.target.value)}
-          className="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-2 py-1.5 text-xs text-neutral-300 font-mono focus:outline-none focus:border-neutral-600 uppercase" />
+          className="flex-1 bg-card border border-edge rounded-lg px-2 py-1.5 text-xs text-ink-2 font-mono focus:outline-none focus:border-edge-strong uppercase" />
       </div>
     </div>
   );
@@ -65,11 +65,11 @@ function CaptionPreview({ config }: { config: ConfigPayload }) {
   const bgColor = hexToRgba(config.caption_bg_color, config.caption_bg_opacity);
 
   return (
-    <div className={`relative overflow-hidden rounded-lg border border-neutral-800 ${isPortrait ? 'aspect-[9/16] max-h-64' : 'aspect-video'}`}
+    <div className={`relative overflow-hidden rounded-lg border border-edge ${isPortrait ? 'aspect-[9/16] max-h-64' : 'aspect-video'}`}
       style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}>
       {/* Fake video content lines */}
       <div className="absolute inset-0 flex items-center justify-center opacity-20">
-        <div className="text-neutral-500 text-xs">Video Preview</div>
+        <div className="text-ink-3 text-xs">Video Preview</div>
       </div>
       {/* Caption overlay — position matches renderer: top = caption_position% */}
       <div className="absolute left-0 right-0 flex justify-center"
@@ -112,9 +112,9 @@ export function CaptionSettings() {
   };
 
   return (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-5 space-y-4">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-neutral-400 font-medium">
-        <Subtitles size={14} className="text-indigo-400" />
+    <div className="bg-card border border-edge rounded-xl p-5 space-y-4">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-3 font-medium">
+        <Subtitles size={14} className="text-accent" />
         Caption Style
       </div>
 
@@ -125,7 +125,7 @@ export function CaptionSettings() {
           <div className="flex gap-1.5 flex-wrap mt-3">
             {PRESET_STYLES.map((preset) => (
               <button key={preset.name} onClick={() => applyPreset(preset)}
-                className="px-2.5 py-1 text-[10px] rounded-lg border border-neutral-700 hover:border-neutral-500 cursor-pointer transition-colors"
+                className="px-2.5 py-1 text-[10px] rounded-lg border border-edge hover:border-edge-strong cursor-pointer transition-colors"
                 style={{ backgroundColor: hexToRgba(preset.bg, preset.opacity), color: preset.active }}>
                 {preset.name}
               </button>
@@ -139,7 +139,7 @@ export function CaptionSettings() {
             <div>
               <Label>Font</Label>
               <select value={config.caption_font} onChange={(e) => setConfig({ caption_font: e.target.value })}
-                className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-neutral-600 cursor-pointer">
+                className="w-full bg-card border border-edge rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-edge-strong cursor-pointer">
                 {Object.entries(FONTS).map(([label, val]) => (
                   <option key={val} value={val}>{label}</option>
                 ))}
@@ -149,7 +149,7 @@ export function CaptionSettings() {
               <Label>Size (0 = auto)</Label>
               <input type="number" min={0} max={120} value={config.caption_font_size}
                 onChange={(e) => setConfig({ caption_font_size: Number(e.target.value) })}
-                className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-neutral-600" />
+                className="w-full bg-card border border-edge rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-edge-strong" />
             </div>
           </div>
 
@@ -164,18 +164,18 @@ export function CaptionSettings() {
               <Label>Position ({config.caption_position}%)</Label>
               <input type="range" min={10} max={90} value={config.caption_position}
                 onChange={(e) => setConfig({ caption_position: Number(e.target.value) })}
-                className="w-full accent-indigo-500" />
+                className="w-full accent-accent" />
             </div>
             <div>
               <Label>BG opacity ({config.caption_bg_opacity})</Label>
               <input type="range" min={0} max={255} value={config.caption_bg_opacity}
                 onChange={(e) => setConfig({ caption_bg_opacity: Number(e.target.value) })}
-                className="w-full accent-indigo-500" />
+                className="w-full accent-accent" />
             </div>
           </div>
 
-          <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer">
-            <input type="checkbox" checked={config.caption_uppercase} onChange={(e) => setConfig({ caption_uppercase: e.target.checked })} className="accent-indigo-500" />
+          <label className="flex items-center gap-1.5 text-xs text-ink-3 cursor-pointer">
+            <input type="checkbox" checked={config.caption_uppercase} onChange={(e) => setConfig({ caption_uppercase: e.target.checked })} className="accent-accent" />
             Uppercase text
           </label>
         </div>

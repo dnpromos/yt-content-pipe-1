@@ -68,15 +68,15 @@ function App() {
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-950 overflow-hidden">
+    <div className="flex flex-col h-screen bg-cream overflow-hidden">
       {/* Top bar */}
-      <header className="border-b border-neutral-800/50">
+      <header className="border-b border-edge">
         <div className="flex items-center justify-between px-8 py-3 max-w-5xl mx-auto w-full">
-          <h1 className="text-sm font-bold text-neutral-300 tracking-wide">clipmatic.video</h1>
+          <h1 className="text-sm font-bold text-ink-2 tracking-wide">clipmatic<span className="text-accent">.video</span></h1>
           <div className="flex items-center gap-1">
             <button onClick={() => { api.killAll(); resetRun(); }}
               title="Start a new run (keeps settings & topic)"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-indigo-400/70 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg cursor-pointer transition-colors">
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-accent/70 hover:text-accent hover:bg-accent/10 rounded-lg cursor-pointer transition-colors">
               <RotateCcw size={14} /> New Run
             </button>
             <button onClick={() => { api.killAll(); }}
@@ -86,7 +86,7 @@ function App() {
             </button>
             <div className="relative">
               <button onClick={() => setRunsOpen(!runsOpen)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer transition-colors">
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-ink-3 hover:text-ink-2 hover:bg-mist rounded-lg cursor-pointer transition-colors">
                 <FolderOpen size={14} /> Runs
               </button>
               <RunList open={runsOpen} onClose={() => setRunsOpen(false)} />

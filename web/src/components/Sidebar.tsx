@@ -44,8 +44,8 @@ function SectionBlock({ icon: Icon, label, children, defaultOpen = true }: {
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-neutral-800">
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 w-full px-4 py-2.5 text-xs uppercase tracking-wider text-neutral-400 hover:text-neutral-200 cursor-pointer">
+    <div className="border-b border-edge">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 w-full px-4 py-2.5 text-xs uppercase tracking-wider text-ink-3 hover:text-ink cursor-pointer">
         <Icon size={14} />
         <span className="flex-1 text-left">{label}</span>
         <span className="text-[10px]">{open ? '▼' : '▶'}</span>
@@ -56,7 +56,7 @@ function SectionBlock({ icon: Icon, label, children, defaultOpen = true }: {
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <label className="block text-[10px] uppercase tracking-wider text-neutral-500 mb-0.5">{children}</label>;
+  return <label className="block text-[10px] uppercase tracking-wider text-ink-3 mb-0.5">{children}</label>;
 }
 
 function Input({ value, onChange, type = 'text', placeholder = '' }: {
@@ -65,7 +65,7 @@ function Input({ value, onChange, type = 'text', placeholder = '' }: {
   return (
     <input
       type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-      className="w-full bg-neutral-900 border border-neutral-800 rounded px-2.5 py-1.5 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-neutral-600"
+      className="w-full bg-card border border-edge rounded px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-4 focus:outline-none focus:border-edge-strong"
     />
   );
 }
@@ -77,7 +77,7 @@ function Select({ value, onChange, options }: {
   return (
     <select
       value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-neutral-900 border border-neutral-800 rounded px-2.5 py-1.5 text-sm text-neutral-200 focus:outline-none focus:border-neutral-600 cursor-pointer"
+      className="w-full bg-card border border-edge rounded px-2.5 py-1.5 text-sm text-ink focus:outline-none focus:border-edge-strong cursor-pointer"
     >
       {entries.map(([label, val]) => <option key={val} value={val}>{label}</option>)}
     </select>
@@ -116,7 +116,7 @@ function CostCalculator({ config }: { config: ConfigPayload }) {
 
   return (
     <SectionBlock icon={DollarSign} label="cost estimate" defaultOpen={true}>
-      <div className="space-y-1 text-[11px] text-neutral-400">
+      <div className="space-y-1 text-[11px] text-ink-3">
         <div className="flex justify-between"><span>Script</span><span>${scriptCost.toFixed(2)}</span></div>
         <div className="flex justify-between"><span>Audio ({numSections + 2} clips)</span><span>${audioCost.toFixed(2)}</span></div>
         <div className="flex justify-between"><span>Images ({2 + sectionImageCount})</span><span>${imageCost.toFixed(2)}</span></div>
@@ -126,7 +126,7 @@ function CostCalculator({ config }: { config: ConfigPayload }) {
             <span>${videoCost.toFixed(2)}</span>
           </div>
         )}
-        <div className="flex justify-between pt-1 border-t border-neutral-800 text-xs font-semibold text-neutral-200">
+        <div className="flex justify-between pt-1 border-t border-edge text-xs font-semibold text-ink">
           <span>Total</span><span>${total.toFixed(2)}</span>
         </div>
       </div>
@@ -163,9 +163,9 @@ export function Sidebar() {
   const currentRes = Object.entries(VIDEO_RES).find(([, v]) => v[0] === config.video_resolution[0] && v[1] === config.video_resolution[1])?.[0] || '720p';
 
   return (
-    <aside className="w-64 min-w-64 h-screen bg-neutral-950 border-r border-neutral-800 flex flex-col overflow-y-auto">
-      <div className="px-4 py-3 border-b border-neutral-800">
-        <h1 className="text-sm font-semibold text-neutral-300 tracking-wide">yt-content-pipe</h1>
+    <aside className="w-64 min-w-64 h-screen bg-cream border-r border-edge flex flex-col overflow-y-auto">
+      <div className="px-4 py-3 border-b border-edge">
+        <h1 className="text-sm font-semibold text-ink-2 tracking-wide">yt-content-pipe</h1>
       </div>
 
       <SectionBlock icon={Settings} label="credentials" defaultOpen={false}>
@@ -203,7 +203,7 @@ export function Sidebar() {
         <Label>section media</Label>
         <Select value={config.section_media_type} onChange={(v) => setConfig({ section_media_type: v })} options={{ 'Images': 'image', 'AI Video': 'video' }} />
         {config.section_media_type === 'video' && (
-          <div className="grid grid-cols-2 gap-2 p-2 bg-neutral-900/50 border border-neutral-800 rounded">
+          <div className="grid grid-cols-2 gap-2 p-2 bg-card/50 border border-edge rounded">
             <div>
               <Label>clips per section</Label>
               <Select value={String(config.videos_per_section)} onChange={(v) => setConfig({ videos_per_section: Number(v) })} options={['1', '2', '3', '4', '5']} />
@@ -225,8 +225,8 @@ export function Sidebar() {
               <Select value={String(config.intro_video_count)} onChange={(v) => setConfig({ intro_video_count: Number(v) })} options={['0', '1', '2', '3', '4', '5']} />
             </div>
             <div className="col-span-2">
-              <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer">
-                <input type="checkbox" checked={config.video_gen_draft === 'true'} onChange={(e) => setConfig({ video_gen_draft: e.target.checked ? 'true' : 'false' })} className="accent-neutral-500" />
+              <label className="flex items-center gap-1.5 text-xs text-ink-3 cursor-pointer">
+                <input type="checkbox" checked={config.video_gen_draft === 'true'} onChange={(e) => setConfig({ video_gen_draft: e.target.checked ? 'true' : 'false' })} className="accent-accent" />
                 draft mode (fast preview)
               </label>
             </div>
@@ -253,8 +253,8 @@ export function Sidebar() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer">
-            <input type="checkbox" checked={config.video_ken_burns} onChange={(e) => setConfig({ video_ken_burns: e.target.checked })} className="accent-neutral-500" />
+          <label className="flex items-center gap-1.5 text-xs text-ink-3 cursor-pointer">
+            <input type="checkbox" checked={config.video_ken_burns} onChange={(e) => setConfig({ video_ken_burns: e.target.checked })} className="accent-accent" />
             ken burns
           </label>
         </div>
@@ -262,13 +262,13 @@ export function Sidebar() {
 
       <CostCalculator config={config} />
 
-      <div className="px-4 py-3 mt-auto border-t border-neutral-800 flex gap-2">
+      <div className="px-4 py-3 mt-auto border-t border-edge flex gap-2">
         <button onClick={handleSave}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded text-xs text-neutral-300 cursor-pointer transition-colors">
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-mist hover:bg-edge rounded text-xs text-ink-2 cursor-pointer transition-colors">
           <Save size={12} /> {saved ? 'saved!' : 'save config'}
         </button>
         <button onClick={handleLoad}
-          className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded text-xs text-neutral-300 cursor-pointer transition-colors">
+          className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-mist hover:bg-edge rounded text-xs text-ink-2 cursor-pointer transition-colors">
           <Download size={12} />
         </button>
       </div>

@@ -53,7 +53,7 @@ export function VoicePicker() {
 
   return (
     <div className="space-y-2">
-      <label className="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Voice</label>
+      <label className="block text-[10px] uppercase tracking-wider text-ink-3 mb-1">Voice</label>
       <div className="grid grid-cols-3 gap-1.5">
         {Object.keys(VOICES).map((name) => {
           const isSelected = name === selectedVoice;
@@ -63,8 +63,8 @@ export function VoicePicker() {
             <div key={name}
               className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg border transition-all cursor-pointer ${
                 isSelected
-                  ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300'
-                  : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-300'
+                  ? 'bg-accent/10 border-accent/50 text-accent'
+                  : 'bg-card border-edge text-ink-3 hover:border-edge-strong hover:text-ink-2'
               }`}
               onClick={() => handleSelect(name)}
             >
@@ -74,8 +74,8 @@ export function VoicePicker() {
                 title={isPlaying ? 'Stop' : 'Play preview'}
                 className={`w-5 h-5 flex items-center justify-center rounded transition-colors cursor-pointer ${
                   isPlaying
-                    ? 'bg-indigo-500 text-white'
-                    : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-700 hover:text-neutral-300'
+                    ? 'bg-accent text-white'
+                    : 'bg-mist text-ink-3 hover:bg-edge hover:text-ink-2'
                 }`}
               >
                 {isPlaying ? <Square size={8} /> : <Volume2 size={10} />}

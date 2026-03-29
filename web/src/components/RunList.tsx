@@ -57,22 +57,22 @@ export function RunList({ open, onClose }: { open: boolean; onClose: () => void 
   if (!open) return null;
 
   return (
-    <div ref={ref} className="absolute top-full right-0 mt-1 w-80 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl shadow-black/40 z-50 overflow-hidden">
-      <div className="px-3 py-2 border-b border-neutral-800 text-[10px] uppercase tracking-wider text-neutral-500 font-medium">
+    <div ref={ref} className="absolute top-full right-0 mt-1 w-80 bg-card border border-edge rounded-xl shadow-2xl shadow-black/10 z-50 overflow-hidden">
+      <div className="px-3 py-2 border-b border-edge text-[10px] uppercase tracking-wider text-ink-3 font-medium">
         Recent Runs
       </div>
       <div className="max-h-64 overflow-y-auto">
         {runs.length === 0 && (
-          <div className="px-3 py-4 text-xs text-neutral-600 text-center">No runs found</div>
+          <div className="px-3 py-4 text-xs text-ink-4 text-center">No runs found</div>
         )}
         {runs.map((run) => (
           <button
             key={run.id}
             onClick={() => loadRun(run.id)}
-            className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-neutral-800 text-xs text-neutral-300 cursor-pointer transition-colors border-b border-neutral-800/50 last:border-b-0"
+            className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-mist text-xs text-ink-2 cursor-pointer transition-colors border-b border-edge/50 last:border-b-0"
           >
-            <Clock size={10} className="text-neutral-600 flex-shrink-0" />
-            <span className="text-neutral-500 font-mono flex-shrink-0">{run.id.replace('run_', '')}</span>
+            <Clock size={10} className="text-ink-4 flex-shrink-0" />
+            <span className="text-ink-3 font-mono flex-shrink-0">{run.id.replace('run_', '')}</span>
             <span className="truncate">{run.title}</span>
           </button>
         ))}

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clipmatic — AI Video Generator</title>
+  <meta name="description" content="Turn any topic into a fully produced video in minutes.">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #ffffff;
+      --surface: #fafafa;
+      --border: #eee;
+      --text: #0f0f0f;
+      --text-2: #333;
+      --text-3: #888;
+      --text-4: #bbb;
+      --accent: #0f0f0f;
+      --accent-inv: #fff;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --red: #dc2626;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'IBM Plex Sans', -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+    .container { max-width: 920px; margin: 0 auto; padding: 0 24px; }
+
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+    nav .inner { max-width: 920px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 52px; }
+    .logo { font-weight: 700; font-size: 17px; letter-spacing: -0.3px; }
+    .logo span { color: var(--text-3); font-weight: 400; }
+    .nav-r { display: flex; gap: 24px; align-items: center; }
+    .nav-r a { font-size: 13px; color: var(--text-3); text-decoration: none; font-weight: 500; }
+    .nav-r a:hover { color: var(--text); }
+    .nav-btn { font-size: 13px; font-weight: 600; padding: 7px 16px; border-radius: 6px; background: var(--accent); color: var(--accent-inv); text-decoration: none; }
+
+    .hero { padding: 140px 0 80px; max-width: 640px; margin: 0 auto; }
+    .hero h1 { font-size: 44px; font-weight: 700; letter-spacing: -1.5px; line-height: 1.15; margin-bottom: 20px; }
+    .hero .sub { font-size: 17px; color: var(--text-3); line-height: 1.7; margin-bottom: 36px; }
+    .hero-btns { display: flex; gap: 12px; }
+    .btn-dark { display: inline-flex; align-items: center; gap: 6px; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; background: var(--accent); color: var(--accent-inv); text-decoration: none; transition: opacity .2s; }
+    .btn-dark:hover { opacity: .85; }
+    .btn-light { display: inline-flex; align-items: center; gap: 6px; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; background: var(--bg); color: var(--text-2); border: 1px solid var(--border); text-decoration: none; }
+    .btn-light:hover { border-color: var(--text-4); }
+
+    .screenshot { padding: 0 0 80px; }
+    .ss-frame { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,.05); }
+    .ss-frame img { width: 100%; display: block; }
+
+    .divider { height: 1px; background: var(--border); }
+    .stag { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: var(--text-4); margin-bottom: 8px; }
+    .stitle { font-size: 30px; font-weight: 700; letter-spacing: -1px; margin-bottom: 12px; }
+    .ssub { font-size: 15px; color: var(--text-3); line-height: 1.7; }
+
+    .features { padding: 80px 0; }
+    .feat-list { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-top: 1px solid var(--border); }
+    .feat-item { padding: 24px 24px 24px 0; border-bottom: 1px solid var(--border); }
+    .feat-item:nth-child(even) { padding-left: 24px; border-left: 1px solid var(--border); }
+    .feat-item h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .feat-item p { font-size: 14px; color: var(--text-3); line-height: 1.6; }
+    @media (max-width: 640px) { .feat-list { grid-template-columns: 1fr; } .feat-item:nth-child(even) { padding-left: 0; border-left: none; } }
+
+    .how { padding: 80px 0; }
+    .how-list { margin-top: 40px; }
+    .how-item { display: flex; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .how-item:last-child { border-bottom: none; }
+    .how-num { font-size: 13px; font-weight: 700; color: var(--text-4); min-width: 32px; padding-top: 2px; }
+    .how-item h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .how-item p { font-size: 14px; color: var(--text-3); line-height: 1.6; }
+
+    .dash-section { padding: 80px 0; }
+    .dash-track { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+    .dash-track::-webkit-scrollbar { display: none; }
+    .dash-track img { flex: 0 0 100%; max-width: 100%; border-radius: 10px; border: 1px solid var(--border); scroll-snap-align: start; cursor: pointer; display: block; }
+    .dash-dots { display: flex; justify-content: center; gap: 6px; margin-top: 16px; }
+    .dash-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--border); cursor: pointer; }
+    .dash-dots span.active { background: var(--text); }
+
+    .demo { padding: 80px 0; }
+    .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 32px; }
+    .demo-card { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); position: relative; }
+    .demo-card iframe { width: 100%; aspect-ratio: 16/9; border: none; display: block; }
+    .demo-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,.65); color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; pointer-events: none; }
+    .demo-shorts { display: flex; gap: 12px; justify-content: center; margin-top: 12px; }
+    .demo-short { width: 180px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); position: relative; }
+    .demo-short iframe { width: 100%; aspect-ratio: 9/16; border: none; display: block; }
+    @media (max-width: 640px) { .demo-grid { grid-template-columns: 1fr; } .demo-shorts { flex-direction: column; align-items: center; } }
+
+    .cost { padding: 80px 0; }
+    .cost-table { max-width: 440px; margin: 32px auto 0; }
+    .cost-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+    .cost-row:last-child { border-bottom: none; }
+    .cost-row .lb { color: var(--text-3); }
+    .cost-row .vl { font-weight: 600; }
+    .cost-row.tot { margin-top: 4px; padding-top: 16px; border-top: 2px solid var(--text); border-bottom: none; }
+    .cost-zero { text-align: center; margin-top: 24px; }
+    .cost-zero strong { color: var(--green); font-size: 16px; }
+    .cost-zero p { font-size: 13px; color: var(--text-3); margin-top: 4px; }
+
+    .coming { padding: 60px 0; }
+    .coming-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 32px; }
+    .coming-card { border: 1px solid var(--border); border-radius: 10px; padding: 24px; text-align: center; }
+    .coming-card .ic { font-size: 24px; margin-bottom: 10px; }
+    .coming-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .coming-card p { font-size: 13px; color: var(--text-3); margin-bottom: 12px; }
+    .ctag { font-size: 10px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; color: var(--text-3); font-weight: 500; display: inline-block; margin: 2px; }
+    .ctag.soon { border-color: rgba(217,119,6,.3); color: #b45309; }
+    @media (max-width: 640px) { .coming-grid { grid-template-columns: 1fr; } }
+
+    .pricing { padding: 80px 0; }
+    .price-wrap { max-width: 400px; margin: 0 auto; text-align: center; }
+    .price-old { font-size: 18px; color: var(--text-4); text-decoration: line-through; }
+    .price-big { font-size: 56px; font-weight: 700; letter-spacing: -2px; margin: 0 0 4px; }
+    .price-big sup { font-size: 22px; vertical-align: super; }
+    .price-sub { font-size: 13px; color: var(--text-4); margin-bottom: 20px; }
+    .price-urg { font-size: 12px; font-weight: 600; color: var(--red); margin-bottom: 28px; }
+    .price-list { list-style: none; text-align: left; margin-bottom: 28px; border-top: 1px solid var(--border); }
+    .price-list li { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-3); display: flex; gap: 10px; }
+    .price-list .ck { color: var(--text-4); flex-shrink: 0; }
+    .price-wrap .btn-dark { width: 100%; justify-content: center; font-size: 15px; padding: 14px; }
+
+    .faq { padding: 80px 0; }
+    .faq-list { max-width: 600px; margin: 32px auto 0; }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-item summary { padding: 16px 0; font-size: 14px; font-weight: 600; cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after { content: '+'; font-size: 16px; color: var(--text-4); }
+    .faq-item[open] summary::after { content: '−'; }
+    .faq-item p { padding: 0 0 16px; font-size: 14px; color: var(--text-3); line-height: 1.7; }
+
+    footer { border-top: 1px solid var(--border); padding: 28px 0; }
+    footer .inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-4); }
+    footer a { color: var(--text-4); text-decoration: none; }
+
+    @media (max-width: 640px) { .hero { padding: 110px 24px 60px; } .hero h1 { font-size: 32px; } .stitle { font-size: 24px; } .price-big { font-size: 44px; } }
+  </style>
+</head>
+<body>
+  <nav><div class="inner"><div class="logo">clipmatic<span>.video</span></div><div class="nav-r"><a href="#features">Features</a><a href="#demo">Demo</a><a href="#pricing">Pricing</a><a href="#pricing" class="nav-btn">Get Access</a></div></div></nav>
+
+  <div class="hero" style="padding-left:24px;padding-right:24px;">
+    <h1>Turn any topic into a fully produced video</h1>
+    <p class="sub">AI script, voiceover, images, video clips & final assembly. Portrait or landscape. TikTok-style captions. One app, every format.</p>
+    <div class="hero-btns"><a href="#pricing" class="btn-dark">Get Access — $64.99</a><a href="#demo" class="btn-light">Demo ↓</a></div>
+  </div>
+
+  <section class="screenshot"><div class="container"><div class="ss-frame"><img src="app1.jpg" alt="Dashboard" onclick="openLightbox('app1.jpg')"></div></div></section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <section class="features" id="features"><div class="container">
+    <div class="stag">Features</div>
+    <h2 class="stitle">Everything included</h2>
+    <div class="feat-list">
+      <div class="feat-item"><h3>Portrait & Landscape</h3><p>16:9 YouTube, 9:16 TikTok/Shorts/Reels, 1:1 Instagram.</p></div>
+      <div class="feat-item"><h3>TikTok-Style Captions</h3><p>Word-by-word captions with customizable styling and active highlighting.</p></div>
+      <div class="feat-item"><h3>AI Video Generation</h3><p>Cinematic clips per section. Configure duration, resolution, clips.</p></div>
+      <div class="feat-item"><h3>Premium Voiceover</h3><p>15+ natural voices, individually voiced per section.</p></div>
+      <div class="feat-item"><h3>Multi-Image & Video</h3><p>Up to 5 images or clips per section with transitions.</p></div>
+      <div class="feat-item"><h3>Zero Markup</h3><p>Pay AI providers directly. No margin, fully transparent.</p></div>
+      <div class="feat-item"><h3>Cost Calculator</h3><p>See exact costs before generating anything.</p></div>
+      <div class="feat-item"><h3>Parallel Processing</h3><p>Everything generates simultaneously. Ready in minutes.</p></div>
+    </div>
+  </div></section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <section class="how"><div class="container">
+    <div class="stag">Workflow</div>
+    <h2 class="stitle">Five steps to a finished video</h2>
+    <div class="how-list">
+      <div class="how-item"><div class="how-num">01</div><div><h3>Video Details</h3><p>Pick platform, media type, voice, and captions.</p></div></div>
+      <div class="how-item"><div class="how-num">02</div><div><h3>Topic & Length</h3><p>Enter subject, choose format, set sections.</p></div></div>
+      <div class="how-item"><div class="how-num">03</div><div><h3>Script</h3><p>AI writes full editable script with narration and prompts.</p></div></div>
+      <div class="how-item"><div class="how-num">04</div><div><h3>Assets</h3><p>One click generates voice, images, and video in parallel.</p></div></div>
+      <div class="how-item"><div class="how-num">05</div><div><h3>Assemble</h3><p>Auto-stitched with transitions, captions, and overlays.</p></div></div>
+    </div>
+  </div></section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <section class="dash-section"><div class="container">
+    <div class="stag">Interface</div>
+    <h2 class="stitle">The dashboard</h2>
+    <div style="margin-top:24px;"><div class="dash-track" id="dashTrack"><img src="app1.jpg" onclick="openLightbox('app1.jpg')"><img src="app2.jpg" onclick="openLightbox('app2.jpg')"><img src="app3.jpg" onclick="openLightbox('app3.jpg')"><img src="app5.jpg" onclick="openLightbox('app5.jpg')"><img src="app6.jpg" onclick="openLightbox('app6.jpg')"></div><div class="dash-dots" id="dashDots"></div></div>
+  </div></section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <section class="demo" id="demo"><div class="container">
+    <div class="stag">Output</div>
+    <h2 class="stitle">Real output, zero editing</h2>
+    <div class="demo-grid">
+      <div class="demo-card"><iframe src="https://www.youtube-nocookie.com/embed/imkU8hOGFrI?rel=0&modestbranding=1" allowfullscreen></iframe><span class="demo-label">Landscape — Images</span></div>
+      <div class="demo-card"><iframe src="https://www.youtube-nocookie.com/embed/vFGJJ1tpkk4?rel=0&modestbranding=1" allowfullscreen></iframe><span class="demo-label">Landscape — AI Clips</span></div>
+    </div>
+    <div class="demo-shorts">
+      <div class="demo-short"><iframe src="https://www.youtube-nocookie.com/embed/X2UQ-0hgoA8?rel=0&modestbranding=1" allowfullscreen></iframe><span class="demo-label">Shorts</span></div>
+      <div class="demo-short"><iframe src="https://www.youtube-nocookie.com/embed/dCvZGYBaza4?rel=0&modestbranding=1" allowfullscreen></iframe><span class="demo-label">Shorts</span></div>
+    </div>
+  </div></section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <section class="cost"><div class="container"><div style="text-align:center;"><div class="stag">Cost</div><h2 class="stitle">No markup, ever</h2><p class="ssub" style="margin:0 auto;">Typical 5-section video:</p></div>
+    <div class="cost-table">
+      <div class="cost-row"><span class="lb">Script</span><span class="vl">$0.01</span></div>
+      <div class="cost-row"><span class="lb">Audio (7 clips)</span><span class="vl">$0.42</span></div>
+      <div class="cost-row"><span class="lb">Images (12)</span><span class="vl">$0.80</span></div>
+      <div class="cost-row"><span class="lb">Video (10 × 5s)</span><span class="vl">$2.00</span></div>
+      <div class="cost-row tot"><span class="lb" style="font-weight:700;">Total</span><span class="vl">~$3.23</span></div>
+    </div>
+    <div class="cost-zero"><strong>Our margin: $0.00</strong><p>Every cent goes to providers.</p></div>
+  </div></section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <section class="coming"><div class="container"><div class="stag">Roadmap</div><h2 class="stitle">Coming soon</h2>
+    <div class="coming-grid">
+      <div class="coming-card"><div class="ic">🎬</div><h3>Video Models</h3><p>Sora, Veo, Seedance</p></div>
+      <div class="coming-card"><div class="ic">🖼</div><h3>Image Models</h3><p>Qwen, Flux, Seedance</p></div>
+      <div class="coming-card"><div class="ic">🧑‍💼</div><h3>Avatars</h3><p><span class="ctag soon">Coming Soon</span></p></div>
+    </div>
+  </div></section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <section class="pricing" id="pricing"><div class="container">
+    <div class="price-wrap">
+      <div class="stag">Pricing</div>
+      <div class="price-old">$199</div>
+      <div class="price-big"><sup>$</sup>64<sup>.99</sup></div>
+      <div class="price-sub">One-time · Lifetime · Free updates</div>
+      <div class="price-urg">🔥 12 of 100 spots left at this price</div>
+      <ul class="price-list">
+        <li><span class="ck">→</span> Native app (Mac & Windows)</li>
+        <li><span class="ck">→</span> Monthly updates</li>
+        <li><span class="ck">→</span> Zero markup on AI</li>
+        <li><span class="ck">→</span> Portrait & landscape</li>
+        <li><span class="ck">→</span> TikTok-style captions</li>
+        <li><span class="ck">→</span> AI script, voice, image, video</li>
+        <li><span class="ck">→</span> Transitions & effects</li>
+        <li><span class="ck">→</span> Cost calculator</li>
+        <li><span class="ck">→</span> No subscriptions</li>
+      </ul>
+      <a href="https://buy.polar.sh/polar_cl_x8UuVaifSWpsiQ7uA1kEHx1REvw07XxrH2fdh3Cug62" class="btn-dark">Buy Now — $64.99</a>
+    </div>
+  </div></section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <section class="faq"><div class="container"><div class="stag">FAQ</div><h2 class="stitle">Questions</h2>
+    <div class="faq-list">
+      <details class="faq-item"><summary>What do I need?</summary><p>Mac or Windows, plus API keys. Everything runs locally.</p></details>
+      <details class="faq-item"><summary>Subscription?</summary><p>No. $64.99 once. Only ongoing cost is AI API calls to providers.</p></details>
+      <details class="faq-item"><summary>Cost per video?</summary><p>$1-2 images, $3-5 with video clips. Calculator shows breakdown.</p></details>
+      <details class="faq-item"><summary>Customizable?</summary><p>Yes. Narration, prompts, images, voice, transitions, captions — all editable.</p></details>
+      <details class="faq-item"><summary>What videos can I make?</summary><p>Listicle-style. Landscape for YouTube, portrait for Shorts/TikTok/Reels.</p></details>
+    </div>
+  </div></section>
+
+  <footer><div class="container inner"><p>© 2025 clipmatic.video</p><div style="display:flex;gap:20px;"><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="mailto:info@clipmatic.video">info@clipmatic.video</a></div></div></footer>
+
+  <div id="lightbox" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);align-items:center;justify-content:center;cursor:zoom-out;" onclick="closeLightbox()"><button style="position:absolute;top:16px;right:20px;background:none;border:none;color:#999;font-size:28px;cursor:pointer;">&times;</button><img id="lb-img" src="" style="max-width:92vw;max-height:92vh;border-radius:8px;"></div>
+  <script>
+    function openLightbox(s){document.getElementById('lb-img').src=s;document.getElementById('lightbox').style.display='flex';}
+    function closeLightbox(){document.getElementById('lightbox').style.display='none';}
+    document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLightbox();});
+    (function(){var t=document.getElementById('dashTrack'),d=document.getElementById('dashDots'),imgs=t.querySelectorAll('img'),c=0;function b(){d.innerHTML='';for(var i=0;i<imgs.length;i++){var s=document.createElement('span');s.className=i===0?'active':'';s.setAttribute('data-i',i);s.onclick=function(){g(+this.getAttribute('data-i'));};d.appendChild(s);}}function g(i){c=Math.max(0,Math.min(i,imgs.length-1));t.scrollTo({left:c*(t.offsetWidth+12),behavior:'smooth'});u();}function u(){var idx=Math.round(t.scrollLeft/(t.offsetWidth+12));d.querySelectorAll('span').forEach(function(s,i){s.className=i===idx?'active':'';});}t.addEventListener('scroll',u);b();})();
+  </script>
+</body>
+</html>

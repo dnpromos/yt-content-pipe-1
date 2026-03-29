@@ -37,7 +37,7 @@ function deriveOutputRes(genRes: string, portrait: boolean): [number, number] {
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <label className="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1">{children}</label>;
+  return <label className="block text-[10px] uppercase tracking-wider text-ink-3 mb-1">{children}</label>;
 }
 
 function Select({ value, onChange, options }: {
@@ -46,7 +46,7 @@ function Select({ value, onChange, options }: {
   const entries = Array.isArray(options) ? options.map((o) => [o, o]) : Object.entries(options);
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-neutral-600 cursor-pointer">
+      className="w-full bg-card border border-edge rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-edge-strong cursor-pointer">
       {entries.map(([label, val]) => <option key={val} value={val}>{label}</option>)}
     </select>
   );
@@ -56,9 +56,9 @@ function Card({ icon: Icon, title, children }: {
   icon: React.ComponentType<{ size?: number; className?: string }>; title: string; children: React.ReactNode;
 }) {
   return (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-5 space-y-3">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-neutral-400 font-medium">
-        <Icon size={14} className="text-indigo-400" />
+    <div className="bg-card border border-edge rounded-xl p-5 space-y-3">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ink-3 font-medium">
+        <Icon size={14} className="text-accent" />
         {title}
       </div>
       {children}
@@ -70,16 +70,16 @@ function MediaToggle({ value, onChange, label }: { value: 'image' | 'video'; onC
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>
-      <div className="flex rounded-lg overflow-hidden border border-neutral-800">
+      <div className="flex rounded-lg overflow-hidden border border-edge">
         <button onClick={() => onChange('image')}
           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors cursor-pointer ${
-            value === 'image' ? 'bg-indigo-600 text-white' : 'bg-neutral-900 text-neutral-500 hover:text-neutral-300'
+            value === 'image' ? 'bg-accent text-white' : 'bg-card text-ink-3 hover:text-ink-2'
           }`}>
           <ImageIcon size={12} /> AI Images
         </button>
         <button onClick={() => onChange('video')}
           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors cursor-pointer ${
-            value === 'video' ? 'bg-indigo-600 text-white' : 'bg-neutral-900 text-neutral-500 hover:text-neutral-300'
+            value === 'video' ? 'bg-accent text-white' : 'bg-card text-ink-3 hover:text-ink-2'
           }`}>
           <Film size={12} /> AI Video
         </button>
@@ -111,14 +111,14 @@ function CostEstimate({ config }: { config: ConfigPayload }) {
 
   return (
     <Card icon={DollarSign} title="Estimated Cost">
-      <div className="space-y-1.5 text-[11px] text-neutral-400">
+      <div className="space-y-1.5 text-[11px] text-ink-3">
         <div className="flex justify-between"><span>Script generation</span><span>${COST_SCRIPT.toFixed(2)}</span></div>
         <div className="flex justify-between"><span>Audio ({numSections + 2} clips)</span><span>${audioCost.toFixed(2)}</span></div>
         <div className="flex justify-between"><span>Images ({introImageCount + outroImageCount + sectionImageCount})</span><span>${imageCost.toFixed(2)}</span></div>
         {totalVideoClips > 0 && (
           <div className="flex justify-between"><span>Videos ({totalVideoClips} clips)</span><span>${videoCost.toFixed(2)}</span></div>
         )}
-        <div className="flex justify-between pt-2 border-t border-neutral-800 text-sm font-semibold text-neutral-200">
+        <div className="flex justify-between pt-2 border-t border-edge text-sm font-semibold text-ink">
           <span>Total</span><span>${total.toFixed(2)}</span>
         </div>
       </div>
@@ -174,15 +174,15 @@ export function StepSettings() {
               <button key={p.id} onClick={() => handlePlatformChange(p.id)}
                 className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border transition-all cursor-pointer ${
                   active
-                    ? 'bg-indigo-600/20 border-indigo-500/50'
-                    : 'bg-neutral-900 border-neutral-800 hover:border-neutral-700'
+                    ? 'bg-accent/10 border-accent/50'
+                    : 'bg-card border-edge hover:border-edge-strong'
                 }`}>
-                <p.icon size={18} className={active ? 'text-indigo-400' : 'text-neutral-600'} />
+                <p.icon size={18} className={active ? 'text-accent' : 'text-ink-4'} />
                 <div className="text-left">
-                  <div className={`text-xs font-medium ${active ? 'text-indigo-300' : 'text-neutral-400'}`}>{p.label}</div>
-                  <div className={`text-[10px] ${active ? 'text-indigo-400/60' : 'text-neutral-600'}`}>{p.desc}</div>
+                  <div className={`text-xs font-medium ${active ? 'text-accent' : 'text-ink-3'}`}>{p.label}</div>
+                  <div className={`text-[10px] ${active ? 'text-accent/60' : 'text-ink-4'}`}>{p.desc}</div>
                 </div>
-                <AspectIcon ratio={p.aspect} className={`ml-auto ${active ? 'text-indigo-400' : 'text-neutral-700'}`} />
+                <AspectIcon ratio={p.aspect} className={`ml-auto ${active ? 'text-accent' : 'text-ink-5'}`} />
               </button>
             );
           })}
@@ -198,8 +198,8 @@ export function StepSettings() {
         />
 
         {sectionIsVideo ? (
-          <div className="space-y-2 p-3 bg-neutral-800/30 border border-neutral-700/50 rounded-lg">
-            <div className="text-[10px] text-neutral-500 mb-2">Each section will have AI-generated video clips</div>
+          <div className="space-y-2 p-3 bg-mist/50 border border-edge/50 rounded-lg">
+            <div className="text-[10px] text-ink-3 mb-2">Each section will have AI-generated video clips</div>
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <Label>Clips per section</Label>
@@ -220,8 +220,8 @@ export function StepSettings() {
             </div>
           </div>
         ) : (
-          <div className="space-y-2 p-3 bg-neutral-800/30 border border-neutral-700/50 rounded-lg">
-            <div className="text-[10px] text-neutral-500 mb-2">Each section will display AI images for 3s with Ken Burns effect</div>
+          <div className="space-y-2 p-3 bg-mist/50 border border-edge/50 rounded-lg">
+            <div className="text-[10px] text-ink-3 mb-2">Each section will display AI images for 3s with Ken Burns effect</div>
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <Label>Images per section</Label>
@@ -236,8 +236,8 @@ export function StepSettings() {
                 <Select value={config.image_resolution} onChange={(v) => setConfig({ image_resolution: v })} options={['1K', '2K', '4K']} />
               </div>
               <div className="flex items-end pb-1">
-                <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer">
-                  <input type="checkbox" checked={config.video_ken_burns} onChange={(e) => setConfig({ video_ken_burns: e.target.checked })} className="accent-indigo-500" />
+                <label className="flex items-center gap-1.5 text-xs text-ink-3 cursor-pointer">
+                  <input type="checkbox" checked={config.video_ken_burns} onChange={(e) => setConfig({ video_ken_burns: e.target.checked })} className="accent-accent" />
                   Ken Burns effect
                 </label>
               </div>
@@ -255,21 +255,21 @@ export function StepSettings() {
         />
 
         {introIsVideo ? (
-          <div className="space-y-2 p-3 bg-neutral-800/30 border border-neutral-700/50 rounded-lg">
-            <div className="text-[10px] text-neutral-500 mb-2">AI video clips will play in addition to the 3s intro image</div>
+          <div className="space-y-2 p-3 bg-mist/50 border border-edge/50 rounded-lg">
+            <div className="text-[10px] text-ink-3 mb-2">AI video clips will play in addition to the 3s intro image</div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Number of intro clips</Label>
                 <Select value={String(config.intro_video_count)} onChange={(v) => setConfig({ intro_video_count: Number(v) })} options={['1', '2', '3', '4', '5']} />
               </div>
-              <div className="flex items-end pb-1 text-[10px] text-neutral-600">
+              <div className="flex items-end pb-1 text-[10px] text-ink-4">
                 Uses same duration & resolution as sections
               </div>
             </div>
           </div>
         ) : (
-          <div className="p-3 bg-neutral-800/30 border border-neutral-700/50 rounded-lg">
-            <div className="text-[10px] text-neutral-500">Intro will display an AI-generated thumbnail image for 3s</div>
+          <div className="p-3 bg-mist/50 border border-edge/50 rounded-lg">
+            <div className="text-[10px] text-ink-3">Intro will display an AI-generated thumbnail image for 3s</div>
           </div>
         )}
       </Card>
@@ -296,11 +296,11 @@ export function StepSettings() {
           </div>
         </div>
         <div className="flex items-center justify-between mt-2">
-          <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer">
-            <input type="checkbox" checked={config.captions_enabled} onChange={(e) => setConfig({ captions_enabled: e.target.checked })} className="accent-indigo-500" />
+          <label className="flex items-center gap-1.5 text-xs text-ink-3 cursor-pointer">
+            <input type="checkbox" checked={config.captions_enabled} onChange={(e) => setConfig({ captions_enabled: e.target.checked })} className="accent-accent" />
             TikTok-style captions
           </label>
-          <div className="text-[10px] text-neutral-600">
+          <div className="text-[10px] text-ink-4">
             {config.video_resolution[0]}×{config.video_resolution[1]} ({config.video_gen_resolution} {isPortrait ? 'portrait' : 'landscape'})
           </div>
         </div>
@@ -315,7 +315,7 @@ export function StepSettings() {
       {/* Next */}
       <div className="flex justify-end pt-2">
         <button onClick={() => setUiStep(1)}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium text-white cursor-pointer transition-all shadow-lg shadow-indigo-500/20">
+          className="flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-hover rounded-xl text-sm font-medium text-white cursor-pointer transition-all shadow-lg shadow-accent/20">
           Next: Choose Topic <ArrowRight size={16} />
         </button>
       </div>

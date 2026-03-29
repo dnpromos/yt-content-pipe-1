@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clipmatic — AI Video Generator</title>
+  <meta name="description" content="Turn any topic into a fully produced video in minutes.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #fff;
+      --surface: #f9fafb;
+      --border: #e5e7eb;
+      --text: #111827;
+      --text-2: #374151;
+      --text-3: #6b7280;
+      --text-4: #9ca3af;
+      --accent: #7c3aed;
+      --accent-hover: #6d28d9;
+      --green: #059669;
+      --red: #dc2626;
+      --radius: 12px;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    .wrap { max-width: 680px; margin: 0 auto; padding: 0 20px; }
+
+    /* NAV */
+    nav { padding: 16px 0; border-bottom: 1px solid var(--border); }
+    nav .inner { max-width: 680px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-weight: 800; font-size: 18px; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent); }
+    .nav-r { display: flex; gap: 16px; align-items: center; }
+    .nav-r a { font-size: 13px; color: var(--text-3); text-decoration: none; font-weight: 500; }
+    .nav-r a:hover { color: var(--text); }
+    .nav-btn { font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 100px; background: var(--accent); color: #fff; text-decoration: none; }
+    .nav-btn:hover { background: var(--accent-hover); }
+
+    /* HERO */
+    .hero { padding: 48px 0 0; text-align: center; }
+    .hero h1 { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.15; margin-bottom: 12px; }
+    .hero .sub { font-size: 16px; color: var(--text-3); max-width: 480px; margin: 0 auto 28px; line-height: 1.7; }
+    .hero-cta { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: 100px; font-size: 15px; font-weight: 700; background: var(--accent); color: #fff; text-decoration: none; transition: background .2s; }
+    .hero-cta:hover { background: var(--accent-hover); }
+    .hero-note { font-size: 12px; color: var(--text-4); margin-top: 10px; }
+
+    /* HERO VIDEOS */
+    .hero-videos { margin-top: 36px; }
+    .hero-videos-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-4); margin-bottom: 14px; }
+    .video-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .video-card { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); position: relative; }
+    .video-card iframe { width: 100%; aspect-ratio: 16/9; border: none; display: block; }
+    .video-card .tag { position: absolute; top: 8px; left: 8px; font-size: 10px; font-weight: 600; background: rgba(0,0,0,.6); color: #fff; padding: 3px 8px; border-radius: 6px; pointer-events: none; }
+    .shorts-row { display: flex; gap: 12px; justify-content: center; margin-top: 12px; }
+    .short-card { width: 160px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); position: relative; }
+    .short-card iframe { width: 100%; aspect-ratio: 9/16; border: none; display: block; }
+    .short-card .tag { position: absolute; top: 8px; left: 8px; font-size: 10px; font-weight: 600; background: rgba(0,0,0,.6); color: #fff; padding: 3px 8px; border-radius: 6px; pointer-events: none; }
+    @media (max-width: 540px) { .video-row { grid-template-columns: 1fr; } .shorts-row { flex-direction: column; align-items: center; } }
+
+    /* SECTION */
+    section { padding: 48px 0; }
+    .divider { height: 1px; background: var(--border); margin: 0; }
+    .stitle { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .ssub { font-size: 14px; color: var(--text-3); margin-bottom: 24px; }
+
+    /* APP SCREENSHOTS */
+    .app-scroll { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 4px; }
+    .app-scroll::-webkit-scrollbar { display: none; }
+    .app-scroll img { height: 260px; border-radius: 10px; border: 1px solid var(--border); scroll-snap-align: start; cursor: pointer; display: block; flex-shrink: 0; }
+
+    /* FEATURES */
+    .feat-list { display: flex; flex-direction: column; gap: 0; }
+    .feat-item { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .feat-item:last-child { border-bottom: none; }
+    .feat-icon { font-size: 20px; flex-shrink: 0; width: 32px; text-align: center; padding-top: 1px; }
+    .feat-item h3 { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+    .feat-item p { font-size: 13px; color: var(--text-3); line-height: 1.6; }
+
+    /* HOW */
+    .step-list { display: flex; flex-direction: column; gap: 0; counter-reset: steps; }
+    .step-item { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .step-item:last-child { border-bottom: none; }
+    .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .step-item h3 { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+    .step-item p { font-size: 13px; color: var(--text-3); line-height: 1.6; }
+
+    /* COST */
+    .cost-table { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .cost-row { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .cost-row:last-child { border-bottom: none; }
+    .cost-row .lb { color: var(--text-3); }
+    .cost-row .vl { font-weight: 600; }
+    .cost-row.tot { background: var(--surface); }
+    .cost-row.tot .vl { color: var(--accent); font-weight: 800; }
+    .cost-note { text-align: center; margin-top: 12px; font-size: 13px; color: var(--green); font-weight: 600; }
+
+    /* PRICING */
+    .price-box { border: 2px solid var(--accent); border-radius: 16px; padding: 32px; text-align: center; position: relative; }
+    .price-badge { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: var(--red); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 14px; border-radius: 100px; white-space: nowrap; }
+    .price-old { font-size: 16px; color: var(--text-4); text-decoration: line-through; }
+    .price-big { font-size: 48px; font-weight: 800; letter-spacing: -2px; margin: 2px 0 4px; }
+    .price-big sup { font-size: 20px; vertical-align: super; }
+    .price-sub { font-size: 12px; color: var(--text-4); margin-bottom: 16px; }
+    .price-urg { font-size: 12px; font-weight: 600; color: var(--red); margin-bottom: 20px; }
+    .check-list { list-style: none; text-align: left; margin-bottom: 24px; }
+    .check-list li { padding: 5px 0; font-size: 13px; color: var(--text-2); display: flex; gap: 8px; }
+    .check-list .ck { color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .price-box .hero-cta { width: 100%; justify-content: center; display: flex; padding: 14px; font-size: 16px; }
+
+    /* COMING */
+    .coming-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .coming-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+    .coming-card .ic { font-size: 22px; margin-bottom: 6px; }
+    .coming-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .coming-card p { font-size: 11px; color: var(--text-3); }
+    @media (max-width: 540px) { .coming-row { grid-template-columns: 1fr; } }
+
+    /* FAQ */
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-item summary { padding: 14px 0; font-size: 14px; font-weight: 600; cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after { content: '+'; font-size: 16px; color: var(--text-4); }
+    .faq-item[open] summary::after { content: '−'; }
+    .faq-item p { padding: 0 0 14px; font-size: 13px; color: var(--text-3); line-height: 1.7; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 24px 0; }
+    footer .inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 11px; color: var(--text-4); }
+    footer a { color: var(--text-4); text-decoration: none; }
+    footer a:hover { color: var(--text-3); }
+
+    @media (max-width: 540px) { .hero h1 { font-size: 28px; } .price-big { font-size: 40px; } }
+  </style>
+</head>
+<body>
+
+  <nav><div class="inner">
+    <div class="logo">clip<span>matic</span></div>
+    <div class="nav-r">
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#pricing" class="nav-btn">Get it</a>
+    </div>
+  </div></nav>
+
+  <!-- HERO -->
+  <section class="hero"><div class="wrap">
+    <h1>Turn any topic into a fully produced video</h1>
+    <p class="sub">AI writes the script, generates voiceover, images, video clips, captions — and assembles the final video. You just type a topic.</p>
+    <a href="#pricing" class="hero-cta">Get Clipmatic — $64.99</a>
+    <p class="hero-note">One-time payment · Mac & Windows · Free updates</p>
+
+    <div class="hero-videos">
+      <div class="hero-videos-label">Made entirely by the app — zero editing</div>
+      <div class="video-row">
+        <div class="video-card">
+          <iframe src="https://www.youtube-nocookie.com/embed/imkU8hOGFrI?rel=0&modestbranding=1" title="Landscape image-based" allowfullscreen loading="lazy"></iframe>
+          <span class="tag">Landscape · Images</span>
+        </div>
+        <div class="video-card">
+          <iframe src="https://www.youtube-nocookie.com/embed/vFGJJ1tpkk4?rel=0&modestbranding=1" title="Landscape AI clips" allowfullscreen loading="lazy"></iframe>
+          <span class="tag">Landscape · AI Clips</span>
+        </div>
+      </div>
+      <div class="shorts-row">
+        <div class="short-card">
+          <iframe src="https://www.youtube-nocookie.com/embed/X2UQ-0hgoA8?rel=0&modestbranding=1" title="Short 1" allowfullscreen loading="lazy"></iframe>
+          <span class="tag">Portrait</span>
+        </div>
+        <div class="short-card">
+          <iframe src="https://www.youtube-nocookie.com/embed/dCvZGYBaza4?rel=0&modestbranding=1" title="Short 2" allowfullscreen loading="lazy"></iframe>
+          <span class="tag">Portrait</span>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+  <div class="wrap"><div class="divider"></div></div>
+
+  <!-- APP SCREENSHOTS -->
+  <section><div class="wrap">
+    <h2 class="stitle">The app</h2>
+    <p class="ssub">Desktop app for Mac & Windows. Click any screenshot to enlarge.</p>
+    <div class="app-scroll">
+      <img src="app1.jpg" alt="Settings" onclick="openLightbox('app1.jpg')">
+      <img src="app2.jpg" alt="Script" onclick="openLightbox('app2.jpg')">
+      <img src="app3.jpg" alt="Assets" onclick="openLightbox('app3.jpg')">
+      <img src="app5.jpg" alt="Assembly" onclick="openLightbox('app5.jpg')">
+      <img src="app6.jpg" alt="Preview" onclick="openLightbox('app6.jpg')">
+    </div>
+  </div></section>
+
+  <div class="wrap"><div class="divider"></div></div>
+
+  <!-- FEATURES -->
+  <section id="features"><div class="wrap">
+    <h2 class="stitle">What's included</h2>
+    <p class="ssub">Everything in one app, no plugins needed.</p>
+    <div class="feat-list">
+      <div class="feat-item"><div class="feat-icon">📐</div><div><h3>Portrait & Landscape</h3><p>YouTube 16:9, TikTok/Shorts 9:16, Instagram 1:1.</p></div></div>
+      <div class="feat-item"><div class="feat-icon">💬</div><div><h3>TikTok-Style Captions</h3><p>Word-by-word animated captions. Custom font, colors, position.</p></div></div>
+      <div class="feat-item"><div class="feat-icon">🎬</div><div><h3>AI Video Clips</h3><p>Cinematic AI-generated clips per section. Not stock — custom.</p></div></div>
+      <div class="feat-item"><div class="feat-icon">🎙</div><div><h3>15+ AI Voices</h3><p>Natural voiceover, individually voiced per section.</p></div></div>
+      <div class="feat-item"><div class="feat-icon">🎞</div><div><h3>Multi-Image & Multi-Video</h3><p>Up to 5 visuals per section with transitions & Ken Burns.</p></div></div>
+      <div class="feat-item"><div class="feat-icon">⚡</div><div><h3>Parallel Generation</h3><p>Voice, images, video all generate at the same time.</p></div></div>
+      <div class="feat-item"><div class="feat-icon">📊</div><div><h3>Cost Calculator</h3><p>See exact cost before generating. No surprises.</p></div></div>
+      <div class="feat-item"><div class="feat-icon">🔓</div><div><h3>Full Source Code</h3><p>Run locally, modify anything. No vendor lock-in.</p></div></div>
+    </div>
+  </div></section>
+
+  <div class="wrap"><div class="divider"></div></div>
+
+  <!-- HOW IT WORKS -->
+  <section id="how"><div class="wrap">
+    <h2 class="stitle">How it works</h2>
+    <p class="ssub">Five steps, no editing required.</p>
+    <div class="step-list">
+      <div class="step-item"><div class="step-num">1</div><div><h3>Pick format</h3><p>Choose platform, media type, voice, and caption style.</p></div></div>
+      <div class="step-item"><div class="step-num">2</div><div><h3>Enter topic</h3><p>Type a subject and pick the length. That's it.</p></div></div>
+      <div class="step-item"><div class="step-num">3</div><div><h3>Review script</h3><p>AI writes narration + image prompts. Edit anything you want.</p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div><h3>Generate assets</h3><p>One click — voiceover, images, video clips, captions all at once.</p></div></div>
+      <div class="step-item"><div class="step-num">5</div><div><h3>Download video</h3><p>Auto-assembled with transitions, captions, intro/outro. Ready to upload.</p></div></div>
+    </div>
+  </div></section>
+
+  <div class="wrap"><div class="divider"></div></div>
+
+  <!-- COST -->
+  <section><div class="wrap">
+    <h2 class="stitle">AI costs per video</h2>
+    <p class="ssub">You pay providers directly. We add zero markup.</p>
+    <div class="cost-table">
+      <div class="cost-row"><span class="lb">Script</span><span class="vl">$0.01</span></div>
+      <div class="cost-row"><span class="lb">Audio (7 clips)</span><span class="vl">$0.42</span></div>
+      <div class="cost-row"><span class="lb">Images (12)</span><span class="vl">$0.80</span></div>
+      <div class="cost-row"><span class="lb">AI Video (10 × 5s)</span><span class="vl">$2.00</span></div>
+      <div class="cost-row tot"><span class="lb" style="font-weight:700;color:var(--text);">Total</span><span class="vl">~$3.23</span></div>
+    </div>
+    <p class="cost-note">Our margin on AI costs: $0.00</p>
+  </div></section>
+
+  <div class="wrap"><div class="divider"></div></div>
+
+  <!-- COMING SOON -->
+  <section><div class="wrap">
+    <h2 class="stitle">Coming soon</h2>
+    <p class="ssub">New models and features with each monthly update.</p>
+    <div class="coming-row">
+      <div class="coming-card"><div class="ic">🎬</div><h3>Video Models</h3><p>Sora, Veo, Seedance</p></div>
+      <div class="coming-card"><div class="ic">🖼</div><h3>Image Models</h3><p>Qwen, Flux, Seedance</p></div>
+      <div class="coming-card"><div class="ic">🧑‍💼</div><h3>AI Avatars</h3><p>Talking-head presenters</p></div>
+    </div>
+  </div></section>
+
+  <div class="wrap"><div class="divider"></div></div>
+
+  <!-- PRICING -->
+  <section id="pricing"><div class="wrap">
+    <div class="price-box">
+      <div class="price-badge">60% OFF — FIRST 100</div>
+      <div class="price-old">$199</div>
+      <div class="price-big"><sup>$</sup>64<sup>.99</sup></div>
+      <div class="price-sub">One-time payment · Lifetime access · Free updates</div>
+      <div class="price-urg">🔥 Only 12 of 100 spots left</div>
+      <ul class="check-list">
+        <li><span class="ck">✓</span> Native app for Mac & Windows</li>
+        <li><span class="ck">✓</span> Monthly updates with new features & models</li>
+        <li><span class="ck">✓</span> Zero markup on AI costs</li>
+        <li><span class="ck">✓</span> Portrait & landscape output</li>
+        <li><span class="ck">✓</span> TikTok-style captions</li>
+        <li><span class="ck">✓</span> AI script, voice, image & video generation</li>
+        <li><span class="ck">✓</span> Multi-clip with transitions & effects</li>
+        <li><span class="ck">✓</span> Built-in cost calculator</li>
+        <li><span class="ck">✓</span> No subscriptions, no recurring fees</li>
+      </ul>
+      <a href="https://buy.polar.sh/polar_cl_x8UuVaifSWpsiQ7uA1kEHx1REvw07XxrH2fdh3Cug62" class="hero-cta">Buy Now — $64.99</a>
+    </div>
+  </div></section>
+
+  <div class="wrap"><div class="divider"></div></div>
+
+  <!-- FAQ -->
+  <section><div class="wrap">
+    <h2 class="stitle">FAQ</h2>
+    <div style="margin-top:16px;">
+      <details class="faq-item"><summary>What do I need to run this?</summary><p>A Mac or Windows PC, and API keys for AI providers. Everything runs locally on your machine.</p></details>
+      <details class="faq-item"><summary>Is there a subscription?</summary><p>No. $64.99 once, lifetime access, free updates forever. Only ongoing cost is AI API calls — paid directly to providers.</p></details>
+      <details class="faq-item"><summary>How much does a video cost to make?</summary><p>$1-2 with images, $3-5 with AI video clips. The built-in calculator shows the exact breakdown before you spend anything.</p></details>
+      <details class="faq-item"><summary>Can I customize the output?</summary><p>Yes — narration, image prompts, your own uploads, voice, transitions, resolution, caption styles, and more.</p></details>
+      <details class="faq-item"><summary>What kind of videos can I make?</summary><p>Listicle-style videos. Landscape 16:9 for YouTube, portrait 9:16 for TikTok/Shorts/Reels. All with auto-generated TikTok captions.</p></details>
+    </div>
+  </div></section>
+
+  <footer><div class="wrap inner">
+    <p>© 2025 clipmatic.video</p>
+    <div style="display:flex;gap:16px;">
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="mailto:info@clipmatic.video">Contact</a>
+    </div>
+  </div></footer>
+
+  <!-- LIGHTBOX -->
+  <div id="lightbox" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;cursor:zoom-out;" onclick="closeLightbox()">
+    <button style="position:absolute;top:14px;right:18px;background:none;border:none;color:#aaa;font-size:24px;cursor:pointer;">&times;</button>
+    <img id="lb-img" src="" style="max-width:92vw;max-height:92vh;border-radius:10px;">
+  </div>
+  <script>
+    function openLightbox(s){document.getElementById('lb-img').src=s;document.getElementById('lightbox').style.display='flex';}
+    function closeLightbox(){document.getElementById('lightbox').style.display='none';}
+    document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLightbox();});
+  </script>
+</body>
+</html>

@@ -10,16 +10,16 @@ export function StepScript() {
 
   if (!script) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 text-neutral-600 text-sm">
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 text-ink-4 text-sm">
         {stage === 'scripting' ? (
           <>
             <div className="flex items-center gap-3">
-              <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-pulse" />
+              <span className="inline-block w-2 h-2 bg-accent rounded-full animate-pulse" />
               Generating script...
             </div>
             <button
               onClick={() => { setStage('idle'); setUiStep(1); setTaskId(null); }}
-              className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-xs text-neutral-400 cursor-pointer transition-colors"
+              className="px-4 py-2 bg-mist hover:bg-edge rounded-lg text-xs text-ink-3 cursor-pointer transition-colors"
             >
               Cancel &amp; go back
             </button>
@@ -29,7 +29,7 @@ export function StepScript() {
             <span>No script generated yet.</span>
             <button
               onClick={() => setUiStep(1)}
-              className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-xs text-neutral-300 cursor-pointer transition-colors"
+              className="px-4 py-2 bg-mist hover:bg-edge rounded-lg text-xs text-ink-2 cursor-pointer transition-colors"
             >
               Go to Topic
             </button>
@@ -83,18 +83,18 @@ export function StepScript() {
       {/* Title bar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <FileText size={16} className="text-neutral-500" />
+          <FileText size={16} className="text-ink-3" />
           <input
             value={script.title}
             onChange={(e) => update({ title: e.target.value })}
-            className="bg-transparent text-lg font-semibold text-neutral-200 border-b border-transparent hover:border-neutral-700 focus:border-indigo-500 focus:outline-none px-1"
+            className="bg-transparent text-lg font-semibold text-ink border-b border-transparent hover:border-edge-strong focus:border-accent focus:outline-none px-1"
           />
-          <span className="text-xs text-neutral-600">{script.sections.length} sections</span>
+          <span className="text-xs text-ink-4">{script.sections.length} sections</span>
         </div>
         <div className="flex gap-2">
           {dirty && (
             <button onClick={handleSave}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 rounded-lg text-xs text-white cursor-pointer transition-colors">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-hover rounded-lg text-xs text-white cursor-pointer transition-colors">
               <Save size={12} /> Save
             </button>
           )}
@@ -141,7 +141,7 @@ export function StepScript() {
           <button
             onClick={handleGenerateAssets}
             disabled={busy}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 rounded-xl text-sm font-medium text-white cursor-pointer transition-all shadow-lg shadow-indigo-500/20"
+            className="flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-hover disabled:opacity-40 rounded-xl text-sm font-medium text-white cursor-pointer transition-all shadow-lg shadow-accent/20"
           >
             Generate Assets <ArrowRight size={16} />
           </button>
@@ -208,24 +208,24 @@ function SpecialBlock({ label, kind, narration, imagePrompt, imagePath, imagePat
   }
 
   return (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-5 space-y-3">
-      <div className="text-[10px] uppercase tracking-wider text-indigo-400 font-semibold">{label}</div>
+    <div className="bg-card border border-edge rounded-xl p-5 space-y-3">
+      <div className="text-[10px] uppercase tracking-wider text-accent font-semibold">{label}</div>
       <textarea
         value={narration} onChange={(e) => onNarrationChange(e.target.value)}
         rows={3}
-        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-sm text-neutral-300 focus:outline-none focus:border-neutral-600 resize-y"
+        className="w-full bg-cream border border-edge rounded-lg px-4 py-3 text-sm text-ink-2 focus:outline-none focus:border-edge-strong resize-y"
       />
-      <div className="text-[10px] uppercase tracking-wider text-neutral-600">Image prompt</div>
+      <div className="text-[10px] uppercase tracking-wider text-ink-4">Image prompt</div>
       <textarea
         value={imagePrompt} onChange={(e) => onPromptChange(e.target.value)}
         rows={2}
-        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2 text-xs text-neutral-500 focus:outline-none focus:border-neutral-600 resize-y"
+        className="w-full bg-cream border border-edge rounded-lg px-4 py-2 text-xs text-ink-3 focus:outline-none focus:border-edge-strong resize-y"
       />
       {allImages.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2">
           {allImages.map((p, i) => (
             <div key={i} className="relative group">
-              <img src={api.fileUrl(p)} alt={`${kind} ${i + 1}`} className="w-32 h-auto rounded-lg border border-neutral-800" />
+              <img src={api.fileUrl(p)} alt={`${kind} ${i + 1}`} className="w-32 h-auto rounded-lg border border-edge" />
               <button onClick={() => handleDeleteImage(p)} title="delete"
                 className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center bg-red-900/80 hover:bg-red-700 rounded text-red-300 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 ✕
@@ -237,27 +237,27 @@ function SpecialBlock({ label, kind, narration, imagePrompt, imagePath, imagePat
       )}
       {videoPaths && videoPaths.length > 0 && (
         <div className="mt-2">
-          <div className="text-[10px] uppercase tracking-wider text-indigo-400/60 mb-1">Video clips ({videoPaths.length})</div>
+          <div className="text-[10px] uppercase tracking-wider text-accent/60 mb-1">Video clips ({videoPaths.length})</div>
           <div className="flex flex-wrap gap-2">
             {videoPaths.map((p, i) => (
-              <video key={i} src={api.fileUrl(p)} controls className="w-40 rounded-lg border border-neutral-800" />
+              <video key={i} src={api.fileUrl(p)} controls className="w-40 rounded-lg border border-edge" />
             ))}
           </div>
         </div>
       )}
       <div className="flex items-center gap-2 mt-1">
         <button onClick={handleRegenerate} disabled={busy}
-          className="flex items-center gap-1 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-40 rounded-lg text-[11px] text-neutral-300 cursor-pointer transition-colors">
+          className="flex items-center gap-1 px-3 py-1.5 bg-mist hover:bg-edge disabled:opacity-40 rounded-lg text-[11px] text-ink-2 cursor-pointer transition-colors">
           <ImagePlus size={11} /> {imagePath ? 'regenerate' : 'generate'}
         </button>
         <button onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-1 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-[11px] text-neutral-300 cursor-pointer transition-colors">
+          className="flex items-center gap-1 px-3 py-1.5 bg-mist hover:bg-edge rounded-lg text-[11px] text-ink-2 cursor-pointer transition-colors">
           <Upload size={11} /> upload
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
         {kind === 'intro' && (
           <button onClick={handleGenerateToc} disabled={busy}
-            className="flex items-center gap-1 px-3 py-1.5 bg-amber-900/60 hover:bg-amber-800 disabled:opacity-40 rounded-lg text-[11px] text-neutral-200 cursor-pointer transition-colors">
+            className="flex items-center gap-1 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 disabled:opacity-40 rounded-lg text-[11px] text-amber-800 cursor-pointer transition-colors">
             <FileText size={11} /> TOC
           </button>
         )}
@@ -346,33 +346,33 @@ function SectionCard({ section, onChange, busy }: {
   };
 
   return (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-5 space-y-3">
+    <div className="bg-card border border-edge rounded-xl p-5 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="w-7 h-7 flex items-center justify-center bg-indigo-500/20 rounded-lg text-xs font-bold text-indigo-400">
+          <span className="w-7 h-7 flex items-center justify-center bg-accent/20 rounded-lg text-xs font-bold text-accent">
             {section.number}
           </span>
           <input
             value={section.heading}
             onChange={(e) => onChange({ heading: e.target.value })}
-            className="bg-transparent text-sm font-semibold text-neutral-200 border-b border-transparent hover:border-neutral-700 focus:border-indigo-500 focus:outline-none px-1"
+            className="bg-transparent text-sm font-semibold text-ink border-b border-transparent hover:border-edge-strong focus:border-accent focus:outline-none px-1"
           />
         </div>
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${hasAudio ? 'bg-emerald-500' : 'bg-neutral-700'}`} title={hasAudio ? 'audio ok' : 'no audio'} />
-          <span className={`w-2 h-2 rounded-full ${hasImage ? 'bg-emerald-500' : 'bg-neutral-700'}`} title={hasImage ? 'image ok' : 'no image'} />
+          <span className={`w-2 h-2 rounded-full ${hasAudio ? 'bg-emerald-500' : 'bg-ink-5'}`} title={hasAudio ? 'audio ok' : 'no audio'} />
+          <span className={`w-2 h-2 rounded-full ${hasImage ? 'bg-emerald-500' : 'bg-ink-5'}`} title={hasImage ? 'image ok' : 'no image'} />
           {missingCount > 0 && (
             <button onClick={handleGenerateMissing} disabled={busy}
-              className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-900/40 hover:bg-amber-800 disabled:opacity-40 rounded text-[10px] text-amber-300 cursor-pointer">
+              className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 hover:bg-amber-200 disabled:opacity-40 rounded text-[10px] text-amber-800 cursor-pointer">
               <AlertTriangle size={10} /> +{missingCount}
             </button>
           )}
           <button onClick={handleRetry} disabled={busy} title="regenerate all images"
-            className="text-neutral-600 hover:text-neutral-300 disabled:opacity-40 cursor-pointer">
+            className="text-ink-4 hover:text-ink-2 disabled:opacity-40 cursor-pointer">
             <RefreshCw size={12} />
           </button>
           <button onClick={() => setExpanded(!expanded)}
-            className="text-xs text-neutral-600 hover:text-neutral-300 cursor-pointer">
+            className="text-xs text-ink-4 hover:text-ink-2 cursor-pointer">
             {expanded ? '▼' : '▶'}
           </button>
         </div>
@@ -382,18 +382,18 @@ function SectionCard({ section, onChange, busy }: {
         value={section.narration}
         onChange={(e) => onChange({ narration: e.target.value })}
         rows={3}
-        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-sm text-neutral-400 focus:outline-none focus:border-neutral-600 resize-y"
+        className="w-full bg-cream border border-edge rounded-lg px-4 py-3 text-sm text-ink-3 focus:outline-none focus:border-edge-strong resize-y"
       />
 
       {/* Image/Video gallery (always visible) */}
       {section.video_paths && section.video_paths.length > 0 && (
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-indigo-400/60 mb-1">Video clips ({section.video_paths.length})</div>
+          <div className="text-[10px] uppercase tracking-wider text-accent/60 mb-1">Video clips ({section.video_paths.length})</div>
           <div className="flex flex-wrap gap-2">
             {section.video_paths.map((p, i) => (
               <div key={i} className="relative group">
-                <video src={api.fileUrl(p)} controls className="w-40 rounded-lg border border-neutral-800" />
-                {i === 0 && <div className="absolute top-1 left-1 bg-indigo-600/80 text-[8px] text-white px-1 rounded">primary</div>}
+                <video src={api.fileUrl(p)} controls className="w-40 rounded-lg border border-edge" />
+                {i === 0 && <div className="absolute top-1 left-1 bg-accent/80 text-[8px] text-white px-1 rounded">primary</div>}
               </div>
             ))}
           </div>
@@ -403,9 +403,9 @@ function SectionCard({ section, onChange, busy }: {
         <div className="flex flex-wrap gap-2">
           {section.image_paths.map((p, i) => (
             <div key={i} className="relative group">
-              <img src={api.fileUrl(p)} alt={`section ${section.number} img ${i + 1}`} className="w-28 h-auto rounded-lg border border-neutral-800" />
+              <img src={api.fileUrl(p)} alt={`section ${section.number} img ${i + 1}`} className="w-28 h-auto rounded-lg border border-edge" />
               <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => handleRemoveFromSection(p)} title="remove" className="w-5 h-5 flex items-center justify-center bg-neutral-900/80 hover:bg-neutral-700 rounded text-neutral-400 text-[10px] cursor-pointer">✕</button>
+                <button onClick={() => handleRemoveFromSection(p)} title="remove" className="w-5 h-5 flex items-center justify-center bg-card/80 hover:bg-edge rounded text-ink-3 text-[10px] cursor-pointer">✕</button>
                 <button onClick={() => handleDelete(p)} title="delete" className="w-5 h-5 flex items-center justify-center bg-red-900/80 hover:bg-red-700 rounded text-red-300 text-[10px] cursor-pointer">🗑</button>
               </div>
               {i === 0 && <div className="absolute bottom-1 left-1 bg-emerald-600/80 text-[8px] text-white px-1 rounded">primary</div>}
@@ -417,26 +417,26 @@ function SectionCard({ section, onChange, busy }: {
       {/* Expanded section: prompts + extra generation */}
       {expanded && (
         <>
-          <div className="space-y-1 border-t border-neutral-800 pt-3">
-            <div className="text-[10px] uppercase tracking-wider text-neutral-600">Image prompts</div>
+          <div className="space-y-1 border-t border-edge pt-3">
+            <div className="text-[10px] uppercase tracking-wider text-ink-4">Image prompts</div>
             {section.image_prompts.map((prompt, i) => (
               <textarea key={i} value={prompt} onChange={(e) => updatePrompt(i, e.target.value)} rows={2}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-xs text-neutral-500 focus:outline-none focus:border-neutral-600 resize-y" />
+                className="w-full bg-cream border border-edge rounded-lg px-3 py-1.5 text-xs text-ink-3 focus:outline-none focus:border-edge-strong resize-y" />
             ))}
           </div>
-          <div className="border-t border-neutral-800 pt-3 space-y-2">
-            <div className="text-[10px] uppercase tracking-wider text-neutral-600">Generate additional images</div>
+          <div className="border-t border-edge pt-3 space-y-2">
+            <div className="text-[10px] uppercase tracking-wider text-ink-4">Generate additional images</div>
             <textarea value={extraPrompt} onChange={(e) => setExtraPrompt(e.target.value)} rows={2}
               placeholder="custom prompt (leave empty to use section prompt)"
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-xs text-neutral-500 placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 resize-y" />
+              className="w-full bg-cream border border-edge rounded-lg px-3 py-1.5 text-xs text-ink-3 placeholder:text-ink-5 focus:outline-none focus:border-edge-strong resize-y" />
             <div className="flex items-center gap-2">
               <input type="number" min={1} max={10} value={extraCount}
                 onChange={(e) => setExtraCount(Math.max(1, Number(e.target.value)))}
-                className="w-12 bg-neutral-950 border border-neutral-800 rounded px-1.5 py-0.5 text-xs text-neutral-400 focus:outline-none focus:border-neutral-600" />
+                className="w-12 bg-cream border border-edge rounded px-1.5 py-0.5 text-xs text-ink-3 focus:outline-none focus:border-edge-strong" />
               <button onClick={handleGenerateExtra} disabled={busy}
-                className="flex items-center gap-1 px-2 py-1 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-40 rounded-lg text-[10px] text-neutral-300 cursor-pointer"><ImagePlus size={10} /> generate</button>
+                className="flex items-center gap-1 px-2 py-1 bg-mist hover:bg-edge disabled:opacity-40 rounded-lg text-[10px] text-ink-2 cursor-pointer"><ImagePlus size={10} /> generate</button>
               <button onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1 px-2 py-1 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-[10px] text-neutral-300 cursor-pointer"><Upload size={10} /> upload</button>
+                className="flex items-center gap-1 px-2 py-1 bg-mist hover:bg-edge rounded-lg text-[10px] text-ink-2 cursor-pointer"><Upload size={10} /> upload</button>
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
             </div>
           </div>
@@ -444,7 +444,7 @@ function SectionCard({ section, onChange, busy }: {
       )}
 
       {section.duration && (
-        <div className="text-[10px] text-neutral-600">{section.duration.toFixed(1)}s</div>
+        <div className="text-[10px] text-ink-4">{section.duration.toFixed(1)}s</div>
       )}
     </div>
   );

@@ -40,7 +40,7 @@ const VIDEO_RES: Record<string, [number, number]> = {
 };
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <label className="block text-[10px] uppercase tracking-wider text-neutral-500 mb-0.5">{children}</label>;
+  return <label className="block text-[10px] uppercase tracking-wider text-ink-3 mb-0.5">{children}</label>;
 }
 
 function Input({ value, onChange, type = 'text', placeholder = '' }: {
@@ -48,7 +48,7 @@ function Input({ value, onChange, type = 'text', placeholder = '' }: {
 }) {
   return (
     <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-      className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-2.5 py-1.5 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-neutral-600" />
+      className="w-full bg-card border border-edge rounded-lg px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-4 focus:outline-none focus:border-edge-strong" />
   );
 }
 
@@ -58,7 +58,7 @@ function Select({ value, onChange, options }: {
   const entries = Array.isArray(options) ? options.map((o) => [o, o]) : Object.entries(options);
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-2.5 py-1.5 text-sm text-neutral-200 focus:outline-none focus:border-neutral-600 cursor-pointer">
+      className="w-full bg-card border border-edge rounded-lg px-2.5 py-1.5 text-sm text-ink focus:outline-none focus:border-edge-strong cursor-pointer">
       {entries.map(([label, val]) => <option key={val} value={val}>{label}</option>)}
     </select>
   );
@@ -69,8 +69,8 @@ function SectionBlock({ icon: Icon, label, children, defaultOpen = true }: {
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-neutral-800/50">
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 w-full px-5 py-3 text-xs uppercase tracking-wider text-neutral-400 hover:text-neutral-200 cursor-pointer">
+    <div className="border-b border-edge">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 w-full px-5 py-3 text-xs uppercase tracking-wider text-ink-3 hover:text-ink cursor-pointer">
         <Icon size={14} />
         <span className="flex-1 text-left">{label}</span>
         <span className="text-[10px]">{open ? '▼' : '▶'}</span>
@@ -101,7 +101,7 @@ function CostCalculator({ config }: { config: ConfigPayload }) {
 
   return (
     <SectionBlock icon={DollarSign} label="Cost Estimate" defaultOpen={true}>
-      <div className="space-y-1 text-[11px] text-neutral-400">
+      <div className="space-y-1 text-[11px] text-ink-3">
         <div className="flex justify-between"><span>Script</span><span>${scriptCost.toFixed(2)}</span></div>
         <div className="flex justify-between"><span>Audio ({numSections + 2} clips)</span><span>${audioCost.toFixed(2)}</span></div>
         <div className="flex justify-between"><span>Images ({2 + sectionImageCount})</span><span>${imageCost.toFixed(2)}</span></div>
@@ -111,7 +111,7 @@ function CostCalculator({ config }: { config: ConfigPayload }) {
             <span>${videoCost.toFixed(2)}</span>
           </div>
         )}
-        <div className="flex justify-between pt-1 border-t border-neutral-800 text-xs font-semibold text-neutral-200">
+        <div className="flex justify-between pt-1 border-t border-edge text-xs font-semibold text-ink">
           <span>Total</span><span>${total.toFixed(2)}</span>
         </div>
       </div>
@@ -156,18 +156,18 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
 
       {/* Drawer */}
       <div className={`
-        fixed top-0 right-0 h-full w-80 bg-neutral-950 border-l border-neutral-800 z-50
+        fixed top-0 right-0 h-full w-80 bg-cream border-l border-edge z-50
         transform transition-transform duration-300 ease-in-out
         ${open ? 'translate-x-0' : 'translate-x-full'}
         flex flex-col overflow-hidden
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-edge">
           <div className="flex items-center gap-2">
-            <Settings size={16} className="text-neutral-400" />
-            <h2 className="text-sm font-semibold text-neutral-300">Settings</h2>
+            <Settings size={16} className="text-ink-3" />
+            <h2 className="text-sm font-semibold text-ink-2">Settings</h2>
           </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-300 cursor-pointer">
+          <button onClick={onClose} className="text-ink-3 hover:text-ink cursor-pointer">
             <X size={18} />
           </button>
         </div>
@@ -209,7 +209,7 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
             <Label>Section media</Label>
             <Select value={config.section_media_type} onChange={(v) => setConfig({ section_media_type: v })} options={{ 'Images': 'image', 'AI Video': 'video' }} />
             {config.section_media_type === 'video' && (
-              <div className="grid grid-cols-2 gap-2 p-2 bg-neutral-900/50 border border-neutral-800 rounded-lg">
+              <div className="grid grid-cols-2 gap-2 p-2 bg-card/50 border border-edge rounded-lg">
                 <div>
                   <Label>Clips/section</Label>
                   <Select value={String(config.videos_per_section)} onChange={(v) => setConfig({ videos_per_section: Number(v) })} options={['1', '2', '3', '4', '5']} />
@@ -231,8 +231,8 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
                   <Select value={String(config.intro_video_count)} onChange={(v) => setConfig({ intro_video_count: Number(v) })} options={['0', '1', '2', '3', '4', '5']} />
                 </div>
                 <div className="col-span-2">
-                  <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer">
-                    <input type="checkbox" checked={config.video_gen_draft === 'true'} onChange={(e) => setConfig({ video_gen_draft: e.target.checked ? 'true' : 'false' })} className="accent-neutral-500" />
+                  <label className="flex items-center gap-1.5 text-xs text-ink-3 cursor-pointer">
+                    <input type="checkbox" checked={config.video_gen_draft === 'true'} onChange={(e) => setConfig({ video_gen_draft: e.target.checked ? 'true' : 'false' })} className="accent-accent" />
                     Draft mode (fast preview)
                   </label>
                 </div>
@@ -258,8 +258,8 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
                 <Select value={config.video_preset} onChange={(v) => setConfig({ video_preset: v })} options={['ultrafast', 'fast', 'medium', 'slow']} />
               </div>
             </div>
-            <label className="flex items-center gap-1.5 text-xs text-neutral-400 cursor-pointer">
-              <input type="checkbox" checked={config.video_ken_burns} onChange={(e) => setConfig({ video_ken_burns: e.target.checked })} className="accent-neutral-500" />
+            <label className="flex items-center gap-1.5 text-xs text-ink-3 cursor-pointer">
+              <input type="checkbox" checked={config.video_ken_burns} onChange={(e) => setConfig({ video_ken_burns: e.target.checked })} className="accent-accent" />
               Ken Burns effect
             </label>
           </SectionBlock>
@@ -268,13 +268,13 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-neutral-800 flex gap-2">
+        <div className="px-5 py-3 border-t border-edge flex gap-2">
           <button onClick={handleSave}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-xs text-neutral-300 cursor-pointer transition-colors">
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-mist hover:bg-edge rounded-lg text-xs text-ink-2 cursor-pointer transition-colors">
             <Save size={12} /> {saved ? 'Saved!' : 'Save'}
           </button>
           <button onClick={handleLoad}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-xs text-neutral-300 cursor-pointer transition-colors">
+            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-mist hover:bg-edge rounded-lg text-xs text-ink-2 cursor-pointer transition-colors">
             <Download size={12} /> Load
           </button>
         </div>
