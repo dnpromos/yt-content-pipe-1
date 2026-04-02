@@ -29,6 +29,7 @@ class Section(BaseModel):
     narration: str
     image_prompt: str = ""
     image_prompts: list[str] = Field(default_factory=list)
+    video_prompts: list[str] = Field(default_factory=list)
     # Populated during generation
     video_prompt: str = ""
     # Populated during generation
@@ -43,9 +44,10 @@ class Section(BaseModel):
 
 
 class Script(BaseModel):
-    """Full listicle script produced by the LLM."""
+    """Full script produced by the LLM."""
 
     title: str
+    format: str = "listicle"
     intro_narration: str
     intro_image_prompt: str = ""
     sections: list[Section] = Field(default_factory=list)

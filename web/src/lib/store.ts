@@ -33,8 +33,8 @@ export type ScriptData = {
   outro_duration: number | null;
 };
 
-export type Stage = 'idle' | 'scripting' | 'scripted' | 'generating_assets' | 'assets_done' | 'assembling' | 'video_done';
-export type UiStep = 0 | 1 | 2 | 3 | 4;
+export type Stage = 'idle' | 'scripting' | 'scripted' | 'generating_voiceovers' | 'voiceovers_done' | 'generating_media' | 'media_done' | 'generating_assets' | 'assets_done' | 'assembling' | 'video_done';
+export type UiStep = 0 | 1 | 2 | 3 | 4 | 5;
 
 type AppState = {
   config: ConfigPayload;
@@ -63,11 +63,14 @@ type AppState = {
   taskId: string | null;
   setTaskId: (id: string | null) => void;
   resetRun: () => void;
+  settingsOpen: boolean;
+  setSettingsOpen: (open: boolean) => void;
 };
 
 const defaultConfig: ConfigPayload = {
   wiro_api_key: '',
   wiro_api_secret: '',
+  voice_provider: 'elevenlabs',
   voice_id: 'EXAVITQu4vr4xnSDxMaL',
   tts_model: 'eleven_flash_v2_5',
   image_style: 'cinematic realistic',
@@ -98,6 +101,7 @@ const defaultConfig: ConfigPayload = {
   caption_uppercase: true,
   caption_position: 75,
   video_length: 'medium',
+  script_format: 'listicle',
 };
 
 export const useStore = create<AppState>()(
@@ -108,6 +112,8 @@ export const useStore = create<AppState>()(
       stage: 'idle',
       setStage: (stage) => set({ stage }),
       uiStep: 0 as UiStep,
+      settingsOpen: false,
+      setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
       setUiStep: (uiStep) => set({ uiStep }),
       topic: '',
       setTopic: (topic) => set({ topic }),
@@ -128,7 +134,7 @@ export const useStore = create<AppState>()(
       clearLogs: () => set({ logs: [] }),
       taskId: null,
       setTaskId: (taskId) => set({ taskId }),
-      resetRun: () => set({ script: null, runId: null, videoPath: null, logs: [], taskId: null, stage: 'idle', uiStep: 1 as UiStep }),
+      resetRun: () => set({ script: null, runId: null, videoPath: null, logs: [], taskId: null, stage: 'idle', uiStep: 0 as UiStep }),
     }),
     {
       name: 'clipmatic-store',

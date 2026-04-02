@@ -40,13 +40,17 @@ export function RunList({ open, onClose }: { open: boolean; onClose: () => void 
         setConfig(data.config as Partial<ConfigPayload>);
       }
 
-      const hasAssets = script.sections.some((s) => s.audio_path || s.image_path);
-      if (hasAssets) {
-        setStage('assets_done');
-        setUiStep(3);
+      const hasMedia = script.sections.some((s) => s.image_path || s.video_path);
+      const hasVoiceovers = script.sections.some((s) => s.audio_path);
+      if (hasMedia) {
+        setStage('media_done');
+        setUiStep(4);
+      } else if (hasVoiceovers) {
+        setStage('voiceovers_done');
+        setUiStep(2);
       } else {
         setStage('scripted');
-        setUiStep(2);
+        setUiStep(1);
       }
       setVideoPath(null);
       addLog(`loaded run: ${runId}`);

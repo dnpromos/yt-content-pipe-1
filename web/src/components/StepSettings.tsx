@@ -1,8 +1,9 @@
 import { useStore } from '../lib/store';
-import { type ConfigPayload } from '../lib/api';
-import { Mic, ImageIcon, Film, DollarSign, ArrowRight, Clapperboard, MonitorPlay, Youtube, Smartphone, Monitor } from 'lucide-react';
+
+import { Mic, ImageIcon, Film, ArrowRight, Clapperboard, MonitorPlay, Youtube, Smartphone, Monitor } from 'lucide-react';
 import { VoicePicker } from './VoicePicker';
 import { CaptionSettings } from './CaptionSettings';
+import { CostEstimate } from './CostEstimate';
 
 
 const IMAGE_STYLES = [
@@ -88,43 +89,6 @@ function MediaToggle({ value, onChange, label }: { value: 'image' | 'video'; onC
   );
 }
 
-function CostEstimate({ config }: { config: ConfigPayload }) {
-  const { script, numSections: storeNumSections } = useStore();
-  const numSections = script?.sections?.length || storeNumSections || 5;
-  const sectionIsVideo = config.section_media_type === 'video';
-  const introIsVideo = config.intro_video_count > 0;
-  const COST_VIDEO_PER_10S = 0.40;
-  const COST_IMAGE = 0.067;
-  const COST_AUDIO = 0.06;
-  const COST_SCRIPT = 0.01;
-
-  const audioCost = (numSections + 2) * COST_AUDIO;
-  const sectionImageCount = sectionIsVideo ? 0 : numSections * config.images_per_section;
-  const introImageCount = introIsVideo ? 0 : 1;
-  const outroImageCount = 1;
-  const imageCost = (introImageCount + outroImageCount + sectionImageCount) * COST_IMAGE;
-  const sectionVideoClips = sectionIsVideo ? numSections * config.videos_per_section : 0;
-  const introVideoClips = introIsVideo ? config.intro_video_count : 0;
-  const totalVideoClips = sectionVideoClips + introVideoClips;
-  const videoCost = (totalVideoClips * config.video_gen_duration / 10) * COST_VIDEO_PER_10S;
-  const total = COST_SCRIPT + audioCost + imageCost + videoCost;
-
-  return (
-    <Card icon={DollarSign} title="Estimated Cost">
-      <div className="space-y-1.5 text-[11px] text-ink-3">
-        <div className="flex justify-between"><span>Script generation</span><span>${COST_SCRIPT.toFixed(2)}</span></div>
-        <div className="flex justify-between"><span>Audio ({numSections + 2} clips)</span><span>${audioCost.toFixed(2)}</span></div>
-        <div className="flex justify-between"><span>Images ({introImageCount + outroImageCount + sectionImageCount})</span><span>${imageCost.toFixed(2)}</span></div>
-        {totalVideoClips > 0 && (
-          <div className="flex justify-between"><span>Videos ({totalVideoClips} clips)</span><span>${videoCost.toFixed(2)}</span></div>
-        )}
-        <div className="flex justify-between pt-2 border-t border-edge text-sm font-semibold text-ink">
-          <span>Total</span><span>${total.toFixed(2)}</span>
-        </div>
-      </div>
-    </Card>
-  );
-}
 
 function AspectIcon({ ratio, className = '' }: { ratio: '16:9' | '9:16'; className?: string }) {
   return ratio === '16:9' ? (
@@ -310,7 +274,7 @@ export function StepSettings() {
       {config.captions_enabled && <CaptionSettings />}
 
       {/* Cost */}
-      <CostEstimate config={config} />
+      <CostEstimate />
 
       {/* Next */}
       <div className="flex justify-end pt-2">

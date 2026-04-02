@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import sys
 import uuid
 from pathlib import Path
@@ -22,10 +23,13 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from src.models import AppConfig, ProviderConfig, VideoConfig, Script
+from src.providers.wiro_client import WiroClient
 from src.pipeline import (
     _create_run_dir,
     _get_provider,
     generate_script,
+    generate_voiceovers,
+    generate_media,
     generate_assets,
     assemble_video,
     regenerate_single_image,
@@ -108,6 +112,7 @@ async def _on_shutdown():
 class ConfigRequest(BaseModel):
     wiro_api_key: str = ""
     wiro_api_secret: str = ""
+    voice_provider: str = "elevenlabs"  # "elevenlabs" or "gemini"
     voice_id: str = "EXAVITQu4vr4xnSDxMaL"
     tts_model: str = "eleven_flash_v2_5"
     image_style: str = "cinematic realistic"
@@ -138,6 +143,7 @@ class ConfigRequest(BaseModel):
     caption_uppercase: bool = True
     caption_position: int = 75
     video_length: str = "medium"  # "short" | "medium" | "long"
+    script_format: str = "listicle"
 
 class GenerateScriptRequest(BaseModel):
     config: ConfigRequest
@@ -210,6 +216,10 @@ class UpdateSectionVideosRequest(BaseModel):
     section_number: int
     video_paths: list[str]
 
+class TopicIdeasRequest(BaseModel):
+    config: ConfigRequest
+    script_format: str = "listicle"
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -224,7 +234,7 @@ def _build_config(req: ConfigRequest) -> AppConfig:
     return AppConfig(
         llm=ProviderConfig(provider="wiro", api_key_env="WIRO_API_KEY", extra=wiro_extra),
         voice=ProviderConfig(
-            provider="wiro",
+            provider="wiro_gemini" if req.voice_provider == "gemini" else "wiro",
             voice_id=req.voice_id,
             api_key_env="WIRO_API_KEY",
             extra={**wiro_extra, "tts_model": req.tts_model, "output_format": "mp3_44100_128"},
@@ -427,6 +437,138 @@ async def serve_file(file_path: str):
     return FileResponse(full_path)
 
 
+@app.post("/api/topic-ideas")
+async def api_topic_ideas(req: TopicIdeasRequest):
+    """Generate topic ideas based on script format using Gemini."""
+    if req.config.wiro_api_key:
+        os.environ["WIRO_API_KEY"] = req.config.wiro_api_key
+    if req.config.wiro_api_secret:
+        os.environ["WIRO_API_SECRET"] = req.config.wiro_api_secret
+
+    from src.providers.format_prompts import FORMATS
+    fmt = FORMATS.get(req.script_format, FORMATS["listicle"])
+    label = fmt["label"]
+
+    prompt = (
+        f"Generate 8 creative, trending, and highly clickable YouTube video topic ideas "
+        f"for the \"{label}\" format.\n\n"
+        f"Format description: {fmt['system_prompt'].split(chr(10))[0]}\n\n"
+        f"Rules:\n"
+        f"- Each topic must be a short, catchy title (max 10 words)\n"
+        f"- Topics should be diverse within the format\n"
+        f"- Topics should be trending, interesting, or evergreen\n"
+        f"- Output ONLY a JSON array of strings, nothing else\n\n"
+        f'Example: ["Topic One", "Topic Two", ...]'
+    )
+
+    wiro_config = ProviderConfig(
+        provider="wiro", api_key_env="WIRO_API_KEY",
+        extra={"api_secret_env": "WIRO_API_SECRET"},
+    )
+    client = WiroClient(wiro_config)
+    run_url = "https://api.wiro.ai/v1/Run/google/gemini-3-flash"
+    task = await client.run_and_poll(run_url, {
+        "prompt": prompt,
+        "systemInstructions": "You are a YouTube content strategist. Output ONLY valid JSON arrays, nothing else.",
+        "thinkingLevel": "low",
+    })
+
+    # Extract text from Wiro Gemini response
+    text = ""
+    outputs = task.get("outputs", [])
+    if outputs:
+        content = outputs[0].get("content", {})
+        # Try 'raw' field first, then join 'answer' list
+        text = content.get("raw", "") or ""
+        if not text.strip():
+            answer = content.get("answer", [])
+            if answer:
+                text = "\n".join(a for a in answer if a)
+    # Fallback: output file URLs
+    if not text.strip():
+        urls = WiroClient.get_output_urls(task)
+        if urls:
+            async with httpx.AsyncClient(timeout=30.0) as http:
+                resp = await http.get(urls[0])
+                resp.raise_for_status()
+                text = resp.text
+    # Fallback: debugoutput
+    if not text.strip():
+        text = task.get("debugoutput", "") or ""
+
+    if not text.strip():
+        raise HTTPException(status_code=500, detail="Empty response from LLM")
+
+    text = text.strip()
+    text = re.sub(r"```(?:json)?\s*", "", text)
+    start = text.find("[")
+    end = text.rfind("]")
+    if start == -1 or end == -1:
+        raise HTTPException(status_code=500, detail="Invalid response from LLM")
+    ideas = json.loads(text[start:end+1])
+    return {"ideas": ideas}
+
+
+class VoicePreviewRequest(BaseModel):
+    config: ConfigRequest
+    voice_provider: str = "elevenlabs"  # "elevenlabs" or "gemini"
+    voice_id: str = ""  # ElevenLabs voice ID or Gemini voice name
+    voice_name: str = ""  # Human-readable name for the file
+
+@app.post("/api/generate-voice-preview")
+async def api_generate_voice_preview(req: VoicePreviewRequest):
+    """Generate a short TTS preview clip and save to web/public/voices/."""
+    if req.config.wiro_api_key:
+        os.environ["WIRO_API_KEY"] = req.config.wiro_api_key
+    if req.config.wiro_api_secret:
+        os.environ["WIRO_API_SECRET"] = req.config.wiro_api_secret
+
+    wiro_config = ProviderConfig(
+        provider="wiro", api_key_env="WIRO_API_KEY",
+        extra={"api_secret_env": "WIRO_API_SECRET"},
+    )
+    client = WiroClient(wiro_config)
+
+    preview_text = "Hey there! This is a quick voice preview so you can hear what I sound like. Pretty cool, right?"
+    name_lower = req.voice_name.lower().replace(" ", "_")
+
+    if req.voice_provider == "gemini":
+        out_dir = BASE_DIR / "web" / "public" / "voices" / "gemini"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_file = out_dir / f"{name_lower}.mp3"
+        if out_file.exists():
+            return {"path": f"/voices/gemini/{name_lower}.mp3", "exists": True}
+
+        run_url = "https://api.wiro.ai/v1/Run/google/gemini-2-5-tts"
+        task = await client.run_and_poll(run_url, {"prompt": preview_text, "voice": req.voice_id})
+    else:
+        out_dir = BASE_DIR / "web" / "public" / "voices"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_file = out_dir / f"{name_lower}.mp3"
+        if out_file.exists():
+            return {"path": f"/voices/{name_lower}.mp3", "exists": True}
+
+        run_url = "https://api.wiro.ai/v1/Run/elevenlabs/text-to-speech"
+        task = await client.run_and_poll(run_url, {
+            "prompt": preview_text, "model": "eleven_flash_v2_5",
+            "voice": req.voice_id, "outputFormat": "mp3_44100_128",
+        })
+
+    urls = WiroClient.get_output_urls(task)
+    if not urls:
+        raise HTTPException(status_code=500, detail="No audio output from TTS task")
+
+    async with httpx.AsyncClient(timeout=60.0) as http:
+        resp = await http.get(urls[0])
+        resp.raise_for_status()
+
+    with open(out_file, "wb") as f:
+        f.write(resp.content)
+
+    rel_path = f"/voices/gemini/{name_lower}.mp3" if req.voice_provider == "gemini" else f"/voices/{name_lower}.mp3"
+    return {"path": rel_path, "exists": False}
+
+
 @app.post("/api/generate-script")
 async def api_generate_script(req: GenerateScriptRequest):
     task_id = str(uuid.uuid4())[:8]
@@ -440,6 +582,7 @@ async def api_generate_script(req: GenerateScriptRequest):
                 subtitles=req.subtitles,
                 custom_instructions=req.custom_instructions,
                 video_length=req.config.video_length,
+                script_format=req.config.script_format,
             )
             run_dir = _create_run_dir()
             save_script(script, run_dir)
@@ -452,6 +595,78 @@ async def api_generate_script(req: GenerateScriptRequest):
             })
         except Exception as e:
             await _broadcast_task(task_id, {"status": "error", "step": "script", "error": str(e)})
+
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
+    return {"task_id": task_id}
+
+
+@app.post("/api/generate-voiceovers")
+async def api_generate_voiceovers(req: GenerateAssetsRequest):
+    task_id = str(uuid.uuid4())[:8]
+    config = _build_config(req.config)
+    run_dir = _get_run_dir(req.run_id)
+    script = load_script(run_dir / "script.json")
+
+    async def _on_progress(updated: Script):
+        save_script(updated, run_dir)
+        await _broadcast_task(task_id, {
+            "status": "progress",
+            "step": "voiceovers",
+            "run_id": req.run_id,
+            "script": _script_to_dict(updated),
+        })
+
+    async def _run():
+        try:
+            await _broadcast_task(task_id, {"status": "running", "step": "voiceovers"})
+            updated = await generate_voiceovers(config, script, run_dir, on_progress=_on_progress)
+            save_script(updated, run_dir)
+            await _broadcast_task(task_id, {
+                "status": "done",
+                "step": "voiceovers",
+                "run_id": req.run_id,
+                "script": _script_to_dict(updated),
+            })
+        except Exception as e:
+            await _broadcast_task(task_id, {"status": "error", "step": "voiceovers", "error": str(e)})
+
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
+    return {"task_id": task_id}
+
+
+@app.post("/api/generate-media")
+async def api_generate_media(req: GenerateAssetsRequest):
+    task_id = str(uuid.uuid4())[:8]
+    config = _build_config(req.config)
+    run_dir = _get_run_dir(req.run_id)
+    script = load_script(run_dir / "script.json")
+
+    async def _on_progress(updated: Script):
+        save_script(updated, run_dir)
+        await _broadcast_task(task_id, {
+            "status": "progress",
+            "step": "media",
+            "run_id": req.run_id,
+            "script": _script_to_dict(updated),
+        })
+
+    async def _run():
+        try:
+            await _broadcast_task(task_id, {"status": "running", "step": "media"})
+            updated = await generate_media(config, script, run_dir, force=req.force_images, on_progress=_on_progress)
+            save_script(updated, run_dir)
+            await _broadcast_task(task_id, {
+                "status": "done",
+                "step": "media",
+                "run_id": req.run_id,
+                "script": _script_to_dict(updated),
+            })
+        except Exception as e:
+            await _broadcast_task(task_id, {"status": "error", "step": "media", "error": str(e)})
 
     t = asyncio.create_task(_run())
     _active_pipeline_tasks.add(t)
@@ -535,6 +750,7 @@ async def api_full_pipeline(req: GenerateScriptRequest):
                 subtitles=req.subtitles,
                 custom_instructions=req.custom_instructions,
                 video_length=req.config.video_length,
+                script_format=req.config.script_format,
             )
             run_dir = _create_run_dir()
             save_script(script, run_dir)

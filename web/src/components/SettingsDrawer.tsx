@@ -1,18 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../lib/store';
 import { api, type ConfigPayload } from '../lib/api';
-import { X, Settings, Mic, ImageIcon, Film, Save, Download, DollarSign } from 'lucide-react';
-
-const VOICES: Record<string, string> = {
-  Rachel: '21m00Tcm4TlvDq8ikWAM', Drew: '29vD33N1CtxCmqQRPOHJ',
-  Clyde: '2EiwWnXFnvU5JabPnv8n', Paul: '5Q0t7uMcjvnagumLfvZi',
-  Aria: '9BWtsMINqrJLrRacOk9x', Sarah: 'EXAVITQu4vr4xnSDxMaL',
-  Laura: 'FGY2WhTYpPnrIDTdsKH5', Charlie: 'IKne3meq5aSn9XLyUdCD',
-  George: 'JBFqnCBsd6RMkjVDRZzb', Emily: 'LcfcDJNUP1GQjkzn1xUU',
-  Callum: 'N2lVS1w4EtoT3dr4eOWO', Liam: 'TX3LPaxmHKxFdv7VOQHJ',
-  Charlotte: 'XB0fDUnXU5powFXDhCwa', Daniel: 'onwK4e9ZLuTAKqWW03F9',
-  River: 'SAz9YHcvj6GT2YYXdXww',
-};
+import { X, Settings, ImageIcon, Film, Save, Download, DollarSign } from 'lucide-react';
 
 const IMAGE_STYLES = [
   'cinematic realistic, dramatic lighting, film grain',
@@ -33,7 +22,6 @@ const IMAGE_STYLES = [
   'sci-fi concept art, matte painting, epic scale',
 ];
 
-const TTS_MODELS = ['eleven_flash_v2_5', 'eleven_v3', 'eleven_flash_v2', 'eleven_turbo_v2_5', 'eleven_turbo_v2'];
 const VIDEO_RES: Record<string, [number, number]> = {
   '720p': [1280, 720], '1080p': [1920, 1080], '1440p': [2560, 1440], '4K': [3840, 2160],
   '720p portrait': [720, 1280], '1080p portrait': [1080, 1920],
@@ -144,7 +132,6 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
     } catch { /* ignore */ }
   };
 
-  const currentVoice = Object.entries(VOICES).find(([, v]) => v === config.voice_id)?.[0] || 'Sarah';
   const currentRes = Object.entries(VIDEO_RES).find(([, v]) => v[0] === config.video_resolution[0] && v[1] === config.video_resolution[1])?.[0] || '720p';
 
   return (
@@ -179,13 +166,6 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
             <Input value={config.wiro_api_key} onChange={(v) => setConfig({ wiro_api_key: v })} type="password" placeholder="WIRO_API_KEY" />
             <Label>API secret</Label>
             <Input value={config.wiro_api_secret} onChange={(v) => setConfig({ wiro_api_secret: v })} type="password" placeholder="WIRO_API_SECRET" />
-          </SectionBlock>
-
-          <SectionBlock icon={Mic} label="Voice">
-            <Label>Voice</Label>
-            <Select value={currentVoice} onChange={(v) => setConfig({ voice_id: VOICES[v] })} options={Object.keys(VOICES)} />
-            <Label>TTS model</Label>
-            <Select value={config.tts_model} onChange={(v) => setConfig({ tts_model: v })} options={TTS_MODELS} />
           </SectionBlock>
 
           <SectionBlock icon={ImageIcon} label="Image">

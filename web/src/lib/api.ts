@@ -19,6 +19,7 @@ async function get<T>(url: string): Promise<T> {
 export type ConfigPayload = {
   wiro_api_key: string;
   wiro_api_secret: string;
+  voice_provider: string;
   voice_id: string;
   tts_model: string;
   image_style: string;
@@ -49,6 +50,7 @@ export type ConfigPayload = {
   caption_uppercase: boolean;
   caption_position: number;
   video_length: string;
+  script_format: string;
 };
 
 export const api = {
@@ -58,6 +60,12 @@ export const api = {
 
   generateScript: (config: ConfigPayload, topic: string, numSections: number, subtitles?: string[], customInstructions?: string) =>
     post<{ task_id: string }>('/api/generate-script', { config, topic, num_sections: numSections, subtitles, custom_instructions: customInstructions }),
+
+  generateVoiceovers: (config: ConfigPayload, runId: string) =>
+    post<{ task_id: string }>('/api/generate-voiceovers', { config, run_id: runId }),
+
+  generateMedia: (config: ConfigPayload, runId: string, force = false) =>
+    post<{ task_id: string }>('/api/generate-media', { config, run_id: runId, force_images: force }),
 
   generateAssets: (config: ConfigPayload, runId: string, forceImages = false) =>
     post<{ task_id: string }>('/api/generate-assets', { config, run_id: runId, force_images: forceImages }),
@@ -131,6 +139,12 @@ export const api = {
     if (!res.ok) throw new Error(await res.text());
     return res.json() as Promise<{ ok: boolean; script: Record<string, unknown> }>;
   },
+
+  topicIdeas: (config: ConfigPayload, scriptFormat: string) =>
+    post<{ ideas: string[] }>('/api/topic-ideas', { config, script_format: scriptFormat }),
+
+  generateVoicePreview: (config: ConfigPayload, voiceProvider: string, voiceId: string, voiceName: string) =>
+    post<{ path: string; exists: boolean }>('/api/generate-voice-preview', { config, voice_provider: voiceProvider, voice_id: voiceId, voice_name: voiceName }),
 
   killAll: () => post<{ ok: boolean; cancelled: number }>('/api/kill-all', {}),
 

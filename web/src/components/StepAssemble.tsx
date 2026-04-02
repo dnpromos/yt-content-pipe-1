@@ -23,7 +23,7 @@ export function StepAssemble() {
       setTaskId(res.task_id);
     } catch (e) {
       addLog(`error: ${e}`);
-      setStage('assets_done');
+      setStage('media_done');
     }
   };
 

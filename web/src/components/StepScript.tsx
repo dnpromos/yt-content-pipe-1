@@ -4,9 +4,9 @@ import { api } from '../lib/api';
 import { Save, RefreshCw, ImagePlus, Upload, AlertTriangle, FileText, ArrowRight } from 'lucide-react';
 
 export function StepScript() {
-  const { script, setScript, config, runId, stage, setStage, setTaskId, addLog, clearLogs, setUiStep } = useStore();
+  const { script, setScript, runId, stage, setStage, setTaskId, addLog, setUiStep } = useStore();
   const [dirty, setDirty] = useState(false);
-  const busy = stage === 'scripting' || stage === 'generating_assets' || stage === 'assembling';
+  const busy = stage === 'scripting' || stage === 'generating_voiceovers' || stage === 'generating_media' || stage === 'generating_assets' || stage === 'assembling';
 
   if (!script) {
     return (
@@ -18,7 +18,7 @@ export function StepScript() {
               Generating script...
             </div>
             <button
-              onClick={() => { setStage('idle'); setUiStep(1); setTaskId(null); }}
+              onClick={() => { setStage('idle'); setUiStep(0); setTaskId(null); }}
               className="px-4 py-2 bg-mist hover:bg-edge rounded-lg text-xs text-ink-3 cursor-pointer transition-colors"
             >
               Cancel &amp; go back
@@ -28,7 +28,7 @@ export function StepScript() {
           <>
             <span>No script generated yet.</span>
             <button
-              onClick={() => setUiStep(1)}
+              onClick={() => setUiStep(0)}
               className="px-4 py-2 bg-mist hover:bg-edge rounded-lg text-xs text-ink-2 cursor-pointer transition-colors"
             >
               Go to Topic
@@ -62,20 +62,10 @@ export function StepScript() {
     }
   };
 
-  const handleGenerateAssets = async () => {
+  const handleNextStep = async () => {
     if (!runId) return;
     if (dirty) await handleSave();
-    clearLogs();
-    addLog('starting asset generation...');
-    setStage('generating_assets');
-    setUiStep(3);
-    try {
-      const res = await api.generateAssets(config, runId, false);
-      setTaskId(res.task_id);
-    } catch (e) {
-      addLog(`error: ${e}`);
-      setStage('scripted');
-    }
+    setUiStep(2);
   };
 
   return (
@@ -136,14 +126,14 @@ export function StepScript() {
       />
 
       {/* Next step button */}
-      {(stage === 'scripted' || stage === 'assets_done' || stage === 'video_done') && (
+      {(stage === 'scripted' || stage === 'voiceovers_done' || stage === 'media_done' || stage === 'assets_done' || stage === 'video_done') && (
         <div className="pt-4 flex justify-end">
           <button
-            onClick={handleGenerateAssets}
+            onClick={handleNextStep}
             disabled={busy}
             className="flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-hover disabled:opacity-40 rounded-xl text-sm font-medium text-white cursor-pointer transition-all shadow-lg shadow-accent/20"
           >
-            Generate Assets <ArrowRight size={16} />
+            Next: Voiceover <ArrowRight size={16} />
           </button>
         </div>
       )}

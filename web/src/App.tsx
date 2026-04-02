@@ -1,11 +1,12 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSocket } from './lib/useSocket';
 import { useStore } from './lib/store';
 import type { ScriptData, UiStep } from './lib/store';
 import { StepWizard } from './components/StepWizard';
-import { StepSettings } from './components/StepSettings';
 import { StepTopic } from './components/StepTopic';
 import { StepScript } from './components/StepScript';
+import { StepVoiceover } from './components/StepVoiceover';
+import { StepMedia } from './components/StepMedia';
 import { StepAssets } from './components/StepAssets';
 import { StepAssemble } from './components/StepAssemble';
 import { LogPanel } from './components/LogPanel';
@@ -48,6 +49,11 @@ class ErrorBoundary extends React.Component<
 function App() {
   const { addLog, setScript, setRunId, setStage, setVideoPath, setTaskId, uiStep, setUiStep, resetRun } = useStore();
   const [runsOpen, setRunsOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo(0, 0);
+  }, [uiStep]);
 
   const handleWsMessage = useCallback((data: Record<string, unknown>) => {
     if (data.type === 'log') {
@@ -63,10 +69,12 @@ function App() {
         addLog(`error: ${data.error}`);
         setTaskId(null);
         // Reset stage to last stable state so buttons become clickable again
-        if (step === 'video') setStage('assets_done');
-        else if (step === 'assets' || step === 'retry' || step === 'retry_section' || step === 'extra_images') setStage('assets_done');
+        if (step === 'video') setStage('media_done');
+        else if (step === 'voiceovers') setStage('scripted');
+        else if (step === 'media') setStage('voiceovers_done');
+        else if (step === 'assets' || step === 'retry' || step === 'retry_section' || step === 'extra_images') setStage('media_done');
         else if (step === 'script') setStage('idle');
-        else setStage('assets_done');
+        else setStage('media_done');
         return;
       }
 
@@ -79,17 +87,21 @@ function App() {
       }
 
       if (status === 'running') {
-        if (step === 'script') { setStage('scripting'); setUiStep(2 as UiStep); }
-        else if (step === 'assets') { setStage('generating_assets'); setUiStep(3 as UiStep); }
-        else if (step === 'video') { setStage('assembling'); setUiStep(4 as UiStep); }
+        if (step === 'script') { setStage('scripting'); setUiStep(1 as UiStep); }
+        else if (step === 'voiceovers') { setStage('generating_voiceovers'); setUiStep(2 as UiStep); }
+        else if (step === 'media') { setStage('generating_media'); setUiStep(3 as UiStep); }
+        else if (step === 'assets') { setStage('generating_assets'); setUiStep(4 as UiStep); }
+        else if (step === 'video') { setStage('assembling'); setUiStep(5 as UiStep); }
       }
 
       if (status === 'done') {
-        if (step === 'script') { setStage('scripted'); setUiStep(2 as UiStep); }
-        else if (step === 'assets' || step === 'retry' || step === 'retry_section' || step === 'extra_images') { setStage('assets_done'); setUiStep(3 as UiStep); }
+        if (step === 'script') { setStage('scripted'); setUiStep(1 as UiStep); }
+        else if (step === 'voiceovers') { setStage('voiceovers_done'); setUiStep(2 as UiStep); }
+        else if (step === 'media') { setStage('media_done'); setUiStep(3 as UiStep); }
+        else if (step === 'assets' || step === 'retry' || step === 'retry_section' || step === 'extra_images') { setStage('media_done'); setUiStep(4 as UiStep); }
         else if (step === 'video') {
           setStage('video_done');
-          setUiStep(4 as UiStep);
+          setUiStep(5 as UiStep);
           if (data.video_path) setVideoPath(data.video_path as string);
         }
         setTaskId(null);
@@ -100,10 +112,11 @@ function App() {
   useSocket(handleWsMessage);
 
   const stepContent = [
-    <StepSettings key="settings" />,
     <StepTopic key="topic" />,
     <StepScript key="script" />,
-    <StepAssets key="assets" />,
+    <StepVoiceover key="voiceover" />,
+    <StepMedia key="media" />,
+    <StepAssets key="review" />,
     <StepAssemble key="assemble" />,
   ];
 
@@ -140,7 +153,7 @@ function App() {
       <StepWizard />
 
       {/* Step content */}
-      <div className="flex-1 overflow-y-auto py-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto py-4">
         {stepContent[uiStep]}
       </div>
 

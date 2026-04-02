@@ -17,8 +17,9 @@ class LLMProvider(abc.ABC):
         self, topic: str, num_sections: int, subtitles: list[str] | None = None,
         image_style: str = "", images_per_section: int = 1,
         custom_instructions: str = "", video_length: str = "medium",
+        script_format: str = "listicle", videos_per_section: int = 1,
     ) -> Script:
-        """Generate a structured listicle script for the given topic."""
+        """Generate a structured script for the given topic."""
         ...
 
 

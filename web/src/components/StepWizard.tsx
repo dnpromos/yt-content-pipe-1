@@ -1,11 +1,12 @@
 import { useStore, type UiStep } from '../lib/store';
-import { Clapperboard, FileText, Sparkles, ImageIcon, Film } from 'lucide-react';
+import { FileText, Sparkles, Mic, ImageIcon, Eye, Film } from 'lucide-react';
 
 const STEPS: { label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
-  { label: 'Settings', icon: Clapperboard },
   { label: 'Topic', icon: FileText },
   { label: 'Script', icon: Sparkles },
-  { label: 'Assets', icon: ImageIcon },
+  { label: 'Voiceover', icon: Mic },
+  { label: 'Media', icon: ImageIcon },
+  { label: 'Review', icon: Eye },
   { label: 'Assemble', icon: Film },
 ];
 
@@ -13,11 +14,12 @@ export function StepWizard() {
   const { uiStep, setUiStep, stage } = useStore();
 
   const canNavigate = (step: UiStep): boolean => {
-    if (step === 0) return true;
-    if (step === 1) return true;
-    if (step === 2) return stage !== 'idle';
-    if (step === 3) return ['scripted', 'generating_assets', 'assets_done', 'assembling', 'video_done'].includes(stage);
-    if (step === 4) return ['assets_done', 'assembling', 'video_done'].includes(stage);
+    if (step === 0) return true; // Topic
+    if (step === 1) return stage !== 'idle'; // Script
+    if (step === 2) return ['scripted', 'generating_voiceovers', 'voiceovers_done', 'generating_media', 'media_done', 'generating_assets', 'assets_done', 'assembling', 'video_done'].includes(stage); // Voiceover
+    if (step === 3) return ['voiceovers_done', 'generating_media', 'media_done', 'generating_assets', 'assets_done', 'assembling', 'video_done'].includes(stage); // Media
+    if (step === 4) return ['media_done', 'assets_done', 'assembling', 'video_done'].includes(stage); // Review
+    if (step === 5) return ['media_done', 'assets_done', 'assembling', 'video_done'].includes(stage); // Assemble
     return false;
   };
 
@@ -36,7 +38,7 @@ export function StepWizard() {
         return (
           <div key={idx} className="flex items-center">
             {idx > 0 && (
-              <div className={`w-16 h-px mx-1 ${state === 'disabled' ? 'bg-edge' : idx <= uiStep ? 'bg-accent' : 'bg-edge-strong'}`} />
+              <div className={`w-8 h-px mx-0.5 ${state === 'disabled' ? 'bg-edge' : idx <= uiStep ? 'bg-accent' : 'bg-edge-strong'}`} />
             )}
             <button
               onClick={() => canNavigate(idx as UiStep) && setUiStep(idx as UiStep)}

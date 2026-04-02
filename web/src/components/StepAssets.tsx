@@ -75,19 +75,19 @@ function AddAssetButton({
 // ---------------------------------------------------------------------------
 export function StepAssets() {
   const { script, config, runId, stage, setStage, setTaskId, addLog, clearLogs, setUiStep } = useStore();
-  const busy = stage === 'generating_assets' || stage === 'assembling';
+  const busy = stage === 'generating_assets' || stage === 'generating_media' || stage === 'assembling';
 
   if (!script) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-ink-4 text-sm">
-        {stage === 'generating_assets' ? (
+        {(stage === 'generating_assets' || stage === 'generating_media') ? (
           <>
             <div className="flex items-center gap-3">
               <Loader size={14} className="animate-spin text-accent" />
               Generating assets...
             </div>
             <button
-              onClick={() => { setStage('scripted'); setUiStep(2); setTaskId(null); }}
+              onClick={() => { setStage('voiceovers_done'); setUiStep(3); setTaskId(null); }}
               className="px-4 py-2 bg-mist hover:bg-edge rounded-lg text-xs text-ink-3 cursor-pointer transition-colors"
             >
               Cancel &amp; go back
@@ -96,7 +96,7 @@ export function StepAssets() {
         ) : (
           <>
             <span>No script available.</span>
-            <button onClick={() => setUiStep(1)} className="px-4 py-2 bg-mist hover:bg-edge rounded-lg text-xs text-ink-2 cursor-pointer transition-colors">
+            <button onClick={() => setUiStep(0)} className="px-4 py-2 bg-mist hover:bg-edge rounded-lg text-xs text-ink-2 cursor-pointer transition-colors">
               Go to Topic
             </button>
           </>
@@ -115,7 +115,7 @@ export function StepAssets() {
       setTaskId(res.task_id);
     } catch (e) {
       addLog(`error: ${e}`);
-      setStage('scripted');
+      setStage('media_done');
     }
   };
 
@@ -175,13 +175,7 @@ export function StepAssets() {
           <AssetBar label="Intro image" current={hasIntroImage ? 1 : 0} total={1} />
         </div>
         <div className="flex gap-2 pt-1">
-          {stage === 'scripted' && (
-            <button onClick={() => handleGenerateAssets(false)} disabled={busy}
-              className="flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-40 rounded-lg text-xs font-medium text-white cursor-pointer transition-all shadow-lg shadow-accent/20">
-              Generate Assets
-            </button>
-          )}
-          {(stage === 'assets_done' || stage === 'video_done') && (
+          {(stage === 'media_done' || stage === 'assets_done' || stage === 'video_done') && (
             <>
               <button onClick={handleRetryMissing} disabled={busy}
                 className="flex items-center gap-1.5 px-3 py-2 bg-mist hover:bg-edge disabled:opacity-40 rounded-lg text-xs text-ink-2 cursor-pointer transition-colors">
@@ -192,7 +186,7 @@ export function StepAssets() {
                 <RefreshCw size={12} /> Regenerate all
               </button>
               <div className="flex-1" />
-              <button onClick={() => setUiStep(4)}
+              <button onClick={() => setUiStep(5)}
                 className="flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-hover rounded-lg text-xs font-medium text-white cursor-pointer transition-all shadow-lg shadow-accent/20">
                 Assemble Video <ArrowRight size={14} />
               </button>

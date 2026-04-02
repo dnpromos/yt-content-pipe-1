@@ -25,6 +25,8 @@ const PRESET_STYLES: { name: string; text: string; active: string; bg: string; o
   { name: 'Ocean', text: '#E0F0FF', active: '#00BBFF', bg: '#001133', opacity: 180 },
   { name: 'Minimal', text: '#FFFFFF', active: '#FFFFFF', bg: '#000000', opacity: 120 },
   { name: 'Sunset', text: '#FFF5E0', active: '#FF8800', bg: '#2D0A00', opacity: 180 },
+  { name: 'Lavender', text: '#F0E6FF', active: '#B366FF', bg: '#1A0033', opacity: 180 },
+  { name: 'Matrix', text: '#00FF00', active: '#FFFFFF', bg: '#001100', opacity: 200 },
 ];
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -40,13 +42,12 @@ function Label({ children }: { children: React.ReactNode }) {
 
 function ColorInput({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
   return (
-    <div>
+    <div className="space-y-1">
       <Label>{label}</Label>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <input type="color" value={value} onChange={(e) => onChange(e.target.value)}
-          className="w-8 h-8 rounded cursor-pointer border border-edge bg-transparent" />
-        <input type="text" value={value} onChange={(e) => onChange(e.target.value)}
-          className="flex-1 bg-card border border-edge rounded-lg px-2 py-1.5 text-xs text-ink-2 font-mono focus:outline-none focus:border-edge-strong uppercase" />
+          className="w-7 h-7 rounded cursor-pointer border border-edge bg-transparent flex-shrink-0" />
+        <span className="text-[10px] text-ink-4 font-mono uppercase">{value}</span>
       </div>
     </div>
   );
