@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from rich.console import Console
@@ -101,6 +102,7 @@ async def _generate_video_for_section(
     duration: int = 5,
 ) -> Path:
     """Generate an AI video clip for a single section."""
+    prompt = f"{prompt}. Do NOT include any text, captions, titles, headlines, or written words in the video."
     log(f"video gen start: {label}")
     console.print(f"  Generating video: {label}")
     path = await video_gen.generate_video(prompt, output_path, duration=duration)
@@ -146,6 +148,32 @@ async def regenerate_section_images(
     return paths
 
 
+async def regenerate_section_videos(
+    config: AppConfig, prompts: list[str], section_number: int, videos_dir: Path,
+) -> list[Path]:
+    """Regenerate video clips for a section in parallel."""
+    if not config.video_gen:
+        raise ValueError("No video_gen provider configured")
+    videos_dir.mkdir(parents=True, exist_ok=True)
+    video_gen = _get_provider("video_gen", config.video_gen.provider, config.video_gen)
+    dur = config.video.video_gen_duration
+    tasks = []
+    paths = []
+    for i, prompt in enumerate(prompts):
+        suffix = f"_{chr(97 + i)}" if i > 0 else ""
+        vid_path = videos_dir / f"section_{section_number:02d}{suffix}.mp4"
+        paths.append(vid_path)
+        tasks.append(
+            _generate_video_for_section(
+                video_gen, prompt, vid_path,
+                f"Section {section_number} video {i + 1}",
+                duration=dur,
+            )
+        )
+    await asyncio.gather(*tasks)
+    return [p for p in paths if p.exists()]
+
+
 async def generate_script(
     config: AppConfig, topic: str, num_sections: int,
     subtitles: list[str] | None = None,
@@ -173,8 +201,13 @@ async def generate_script(
 async def generate_assets(
     config: AppConfig, script: Script, run_dir: Path,
     force_images: bool = False,
+    on_progress: Callable[[Script], Awaitable[None]] | None = None,
 ) -> Script:
-    """Steps 2 & 3: Generate voice and images in parallel."""
+    """Steps 2 & 3: Generate voice and images in parallel.
+
+    Each asset task updates the script immediately on completion and
+    calls ``on_progress`` so the caller can broadcast live updates.
+    """
     log("step 2-3/4: generating voice + images (parallel)...")
     console.print("Step 2-3/4: Generating voice & images (parallel)...")
 
@@ -193,19 +226,83 @@ async def generate_assets(
     images_dir.mkdir(exist_ok=True)
     videos_dir.mkdir(exist_ok=True)
 
-    tasks = []
-    # Track task order: (type, label) for mapping results back
-    task_map = []
+    sections_by_num = {s.number: s for s in script.sections}
+
+    # ------------------------------------------------------------------
+    # Helper: run a coroutine, apply result to script, notify caller
+    # ------------------------------------------------------------------
+    _error_count = [0]
+
+    async def _run_task(coro, task_type, task_key):
+        try:
+            result = await coro
+        except Exception as e:
+            _error_count[0] += 1
+            log(f"asset error: {e}")
+            console.print(f"Error: {e}")
+            return
+
+        if task_type == "intro_voice":
+            duration, cdn_url = result
+            script.intro_audio_path = intro_audio_path
+            script.intro_duration = duration
+            script.intro_audio_cdn_url = cdn_url
+        elif task_type == "intro_image":
+            script.intro_image_path = intro_image_path
+        elif task_type == "intro_video":
+            vid_path = videos_dir / f"intro_{task_key:02d}.mp4"
+            if vid_path not in script.intro_video_paths:
+                script.intro_video_paths.append(vid_path)
+        elif task_type == "sec_voice":
+            duration, cdn_url = result
+            sec = sections_by_num[task_key]
+            sec.audio_path = audio_dir / f"section_{task_key:02d}.mp3"
+            sec.duration = duration
+            sec.audio_cdn_url = cdn_url
+        elif task_type == "sec_video":
+            sec_number, vid_idx = task_key
+            sec = sections_by_num[sec_number]
+            suffix = "" if vid_idx == 0 else f"_{chr(97 + vid_idx)}"
+            vid_path = videos_dir / f"section_{sec_number:02d}{suffix}.mp4"
+            if vid_idx == 0:
+                sec.video_path = vid_path
+            if vid_path not in sec.video_paths:
+                sec.video_paths.append(vid_path)
+        elif task_type == "sec_image":
+            sec_number, img_idx = task_key
+            sec = sections_by_num[sec_number]
+            suffix = "" if img_idx == 0 else f"_{chr(97 + img_idx)}"
+            img_path = images_dir / f"section_{sec_number:02d}{suffix}.png"
+            if img_idx == 0:
+                sec.image_path = img_path
+            if img_path not in sec.image_paths:
+                sec.image_paths.append(img_path)
+        elif task_type == "outro_voice":
+            duration, cdn_url = result
+            script.outro_audio_path = outro_audio_path
+            script.outro_duration = duration
+            script.outro_audio_cdn_url = cdn_url
+        elif task_type == "outro_image":
+            script.outro_image_path = outro_image_path
+
+        if on_progress:
+            try:
+                await on_progress(script)
+            except Exception:
+                pass
+
+    # ------------------------------------------------------------------
+    # Build the wrapped task list
+    # ------------------------------------------------------------------
+    wrapped_tasks: list = []
 
     # Intro voice
     intro_audio_path = audio_dir / "intro.mp3"
     if not intro_audio_path.exists():
-        tasks.append(
-            _generate_voice_for_section(
-                voice, script.intro_narration, intro_audio_path, "Intro"
-            )
-        )
-        task_map.append(("intro_voice", None))
+        wrapped_tasks.append(_run_task(
+            _generate_voice_for_section(voice, script.intro_narration, intro_audio_path, "Intro"),
+            "intro_voice", None,
+        ))
     else:
         log("skip intro voice (exists)")
         script.intro_audio_path = intro_audio_path
@@ -213,12 +310,10 @@ async def generate_assets(
     # Intro image (always generated — shown for first 3s)
     intro_image_path = images_dir / "intro.png"
     if script.intro_image_prompt and (force_images or not intro_image_path.exists()):
-        tasks.append(
-            _generate_image_for_section(
-                image_gen, script.intro_image_prompt, intro_image_path, "Intro"
-            )
-        )
-        task_map.append(("intro_image", None))
+        wrapped_tasks.append(_run_task(
+            _generate_image_for_section(image_gen, script.intro_image_prompt, intro_image_path, "Intro"),
+            "intro_image", None,
+        ))
     elif intro_image_path.exists():
         log("skip intro image (exists)")
         script.intro_image_path = intro_image_path
@@ -231,7 +326,6 @@ async def generate_assets(
         for vid_idx in range(n_intro_vids):
             intro_vid = videos_dir / f"intro_{vid_idx:02d}.mp4"
             if force_images or not intro_vid.exists():
-                # Build an overview prompt that references upcoming sections
                 chunk_size = max(1, len(headings) // n_intro_vids)
                 start = vid_idx * chunk_size
                 relevant = headings[start:start + chunk_size] or headings
@@ -240,13 +334,10 @@ async def generate_assets(
                     f"Dynamic camera movement, dramatic lighting, fast-paced visual overview, "
                     f"high energy, professional documentary style"
                 )
-                tasks.append(
-                    _generate_video_for_section(
-                        video_gen, overview_prompt, intro_vid,
-                        f"Intro vid {vid_idx + 1}", duration=vid_dur,
-                    )
-                )
-                task_map.append(("intro_video", vid_idx))
+                wrapped_tasks.append(_run_task(
+                    _generate_video_for_section(video_gen, overview_prompt, intro_vid, f"Intro vid {vid_idx + 1}", duration=vid_dur),
+                    "intro_video", vid_idx,
+                ))
             else:
                 log(f"skip intro vid {vid_idx + 1} (exists)")
                 if intro_vid not in script.intro_video_paths:
@@ -257,18 +348,15 @@ async def generate_assets(
         sec_audio = audio_dir / f"section_{section.number:02d}.mp3"
 
         if not sec_audio.exists():
-            tasks.append(
-                _generate_voice_for_section(
-                    voice, section.narration, sec_audio, f"Section {section.number}"
-                )
-            )
-            task_map.append(("sec_voice", section.number))
+            wrapped_tasks.append(_run_task(
+                _generate_voice_for_section(voice, section.narration, sec_audio, f"Section {section.number}"),
+                "sec_voice", section.number,
+            ))
         else:
             log(f"skip section {section.number} voice (exists)")
             section.audio_path = sec_audio
 
         if use_video and video_gen:
-            # Video mode: generate N AI video clips per section
             n_vids = config.video.videos_per_section
             vid_dur = config.video.video_gen_duration
             prompts = section.image_prompts if section.image_prompts else [section.image_prompt]
@@ -278,14 +366,10 @@ async def generate_assets(
                 sec_video = videos_dir / f"section_{section.number:02d}{suffix}.mp4"
                 vid_prompt = prompts[vid_idx] if vid_idx < len(prompts) else base_prompt
                 if force_images or not sec_video.exists():
-                    tasks.append(
-                        _generate_video_for_section(
-                            video_gen, vid_prompt, sec_video,
-                            f"Section {section.number} vid {vid_idx + 1}",
-                            duration=vid_dur,
-                        )
-                    )
-                    task_map.append(("sec_video", (section.number, vid_idx)))
+                    wrapped_tasks.append(_run_task(
+                        _generate_video_for_section(video_gen, vid_prompt, sec_video, f"Section {section.number} vid {vid_idx + 1}", duration=vid_dur),
+                        "sec_video", (section.number, vid_idx),
+                    ))
                 else:
                     log(f"skip section {section.number} vid {vid_idx + 1} (exists)")
                     if vid_idx == 0:
@@ -293,18 +377,15 @@ async def generate_assets(
                     if sec_video not in section.video_paths:
                         section.video_paths.append(sec_video)
         else:
-            # Image mode: generate multiple images per section
             prompts = section.image_prompts if section.image_prompts else [section.image_prompt]
             for img_idx, prompt in enumerate(prompts):
-                suffix = "" if img_idx == 0 else f"_{chr(97 + img_idx)}"  # _a, _b, _c...
+                suffix = "" if img_idx == 0 else f"_{chr(97 + img_idx)}"
                 sec_image = images_dir / f"section_{section.number:02d}{suffix}.png"
                 if force_images or not sec_image.exists():
-                    tasks.append(
-                        _generate_image_for_section(
-                            image_gen, prompt, sec_image, f"Section {section.number} img {img_idx + 1}"
-                        )
-                    )
-                    task_map.append(("sec_image", (section.number, img_idx)))
+                    wrapped_tasks.append(_run_task(
+                        _generate_image_for_section(image_gen, prompt, sec_image, f"Section {section.number} img {img_idx + 1}"),
+                        "sec_image", (section.number, img_idx),
+                    ))
                 else:
                     log(f"skip section {section.number} img {img_idx + 1} (exists)")
                     if img_idx == 0:
@@ -315,12 +396,10 @@ async def generate_assets(
     # Outro voice
     outro_audio_path = audio_dir / "outro.mp3"
     if not outro_audio_path.exists():
-        tasks.append(
-            _generate_voice_for_section(
-                voice, script.outro_narration, outro_audio_path, "Outro"
-            )
-        )
-        task_map.append(("outro_voice", None))
+        wrapped_tasks.append(_run_task(
+            _generate_voice_for_section(voice, script.outro_narration, outro_audio_path, "Outro"),
+            "outro_voice", None,
+        ))
     else:
         log("skip outro voice (exists)")
         script.outro_audio_path = outro_audio_path
@@ -328,74 +407,17 @@ async def generate_assets(
     # Outro image
     outro_image_path = images_dir / "outro.png"
     if script.outro_image_prompt and (force_images or not outro_image_path.exists()):
-        tasks.append(
-            _generate_image_for_section(
-                image_gen, script.outro_image_prompt, outro_image_path, "Outro"
-            )
-        )
-        task_map.append(("outro_image", None))
+        wrapped_tasks.append(_run_task(
+            _generate_image_for_section(image_gen, script.outro_image_prompt, outro_image_path, "Outro"),
+            "outro_image", None,
+        ))
     elif outro_image_path.exists():
         log("skip outro image (exists)")
         script.outro_image_path = outro_image_path
 
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    # Log errors but don't abort — allow partial success
-    errors = [r for r in results if isinstance(r, Exception)]
-    if errors:
-        for err in errors:
-            log(f"asset error: {err}")
-            console.print(f"Error: {err}")
-
-    # Map results back to script (skip failed ones)
-    sections_by_num = {s.number: s for s in script.sections}
-
-    for idx, (task_type, sec_num) in enumerate(task_map):
-        result = results[idx]
-        is_err = isinstance(result, Exception)
-
-        if task_type == "intro_voice" and not is_err:
-            duration, cdn_url = result
-            script.intro_audio_path = intro_audio_path
-            script.intro_duration = duration
-            script.intro_audio_cdn_url = cdn_url
-        elif task_type == "intro_image" and not is_err:
-            script.intro_image_path = intro_image_path
-        elif task_type == "intro_video" and not is_err:
-            vid_path = videos_dir / f"intro_{sec_num:02d}.mp4"
-            if vid_path not in script.intro_video_paths:
-                script.intro_video_paths.append(vid_path)
-        elif task_type == "sec_voice" and not is_err:
-            duration, cdn_url = result
-            sec = sections_by_num[sec_num]
-            sec.audio_path = audio_dir / f"section_{sec_num:02d}.mp3"
-            sec.duration = duration
-            sec.audio_cdn_url = cdn_url
-        elif task_type == "sec_video" and not is_err:
-            sec_number, vid_idx = sec_num
-            sec = sections_by_num[sec_number]
-            suffix = "" if vid_idx == 0 else f"_{chr(97 + vid_idx)}"
-            vid_path = videos_dir / f"section_{sec_number:02d}{suffix}.mp4"
-            if vid_idx == 0:
-                sec.video_path = vid_path
-            if vid_path not in sec.video_paths:
-                sec.video_paths.append(vid_path)
-        elif task_type == "sec_image" and not is_err:
-            sec_number, img_idx = sec_num
-            sec = sections_by_num[sec_number]
-            suffix = "" if img_idx == 0 else f"_{chr(97 + img_idx)}"
-            img_path = images_dir / f"section_{sec_number:02d}{suffix}.png"
-            if img_idx == 0:
-                sec.image_path = img_path
-            if img_path not in sec.image_paths:
-                sec.image_paths.append(img_path)
-        elif task_type == "outro_voice" and not is_err:
-            duration, cdn_url = result
-            script.outro_audio_path = outro_audio_path
-            script.outro_duration = duration
-            script.outro_audio_cdn_url = cdn_url
-        elif task_type == "outro_image" and not is_err:
-            script.outro_image_path = outro_image_path
+    # Run all tasks in parallel — each updates the script on completion
+    log(f"launching {len(wrapped_tasks)} asset tasks in parallel...")
+    await asyncio.gather(*wrapped_tasks)
 
     # Clear stale captions before re-transcribing
     script.intro_captions = []
@@ -448,8 +470,8 @@ async def generate_assets(
         elif missing_urls > 0 and not caption_tasks:
             log("captions: no audio clips have CDN URLs — skipping transcription")
 
-    if errors:
-        log(f"assets done with {len(errors)} error(s) — you can retry or upload manually")
+    if _error_count[0]:
+        log(f"assets done with {_error_count[0]} error(s) — you can retry or upload manually")
     else:
         log("all assets generated")
     console.print("Assets processing complete.")
@@ -478,6 +500,9 @@ def save_script(script: Script, run_dir: Path) -> Path:
                 sec[key] = sec[key].replace("\\", "/")
         if sec.get("image_paths"):
             sec["image_paths"] = [p.replace("\\", "/") for p in sec["image_paths"]]
+    for key in ("intro_image_paths", "intro_video_paths"):
+        if data.get(key):
+            data[key] = [p.replace("\\", "/") for p in data[key]]
     with open(script_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
     return script_path
@@ -542,6 +567,41 @@ def load_script(script_path: Path) -> Script:
                 if candidate.exists():
                     resolved_paths.append(str(candidate))
         sec["image_paths"] = resolved_paths
+
+    # Resolve or discover intro_image_paths
+    videos_dir = run_dir / "videos"
+    resolved_intro_images = []
+    if data.get("intro_image_paths"):
+        for ip in data["intro_image_paths"]:
+            p = Path(ip.replace("\\", "/"))
+            if not p.is_absolute():
+                p = images_dir / p.name
+            if p.exists():
+                resolved_intro_images.append(str(p))
+    else:
+        # Discover from disk: intro_b.png, intro_c.png, intro_toc.png, ...
+        for suffix in ["_b", "_c", "_d", "_e", "_toc"]:
+            candidate = images_dir / f"intro{suffix}.png"
+            if candidate.exists():
+                resolved_intro_images.append(str(candidate))
+    data["intro_image_paths"] = resolved_intro_images
+
+    # Resolve or discover intro_video_paths
+    resolved_intro_videos = []
+    if data.get("intro_video_paths"):
+        for vp in data["intro_video_paths"]:
+            p = Path(vp.replace("\\", "/"))
+            if not p.is_absolute():
+                p = videos_dir / p.name
+            if p.exists():
+                resolved_intro_videos.append(str(p))
+    else:
+        # Discover from disk: intro_00.mp4, intro_01.mp4, ...
+        for i in range(10):
+            candidate = videos_dir / f"intro_{i:02d}.mp4"
+            if candidate.exists():
+                resolved_intro_videos.append(str(candidate))
+    data["intro_video_paths"] = resolved_intro_videos
 
     return Script(**data)
 

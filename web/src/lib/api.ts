@@ -80,8 +80,23 @@ export const api = {
   updateSectionImages: (runId: string, sectionNumber: number, imagePaths: string[]) =>
     post<{ ok: boolean; script: Record<string, unknown> }>('/api/update-section-images', { run_id: runId, section_number: sectionNumber, image_paths: imagePaths }),
 
+  updateIntroImages: (runId: string, imagePaths: string[]) =>
+    post<{ ok: boolean; script: Record<string, unknown> }>('/api/update-intro-images', { run_id: runId, image_paths: imagePaths }),
+
   deleteImage: (runId: string, imagePath: string) =>
     post<{ ok: boolean; script: Record<string, unknown> }>('/api/delete-image', { run_id: runId, image_path: imagePath }),
+
+  deleteVideo: (runId: string, videoPath: string) =>
+    post<{ ok: boolean; script: Record<string, unknown> }>('/api/delete-video', { run_id: runId, video_path: videoPath }),
+
+  addSectionVideo: (config: ConfigPayload, runId: string, sectionNumber: number) =>
+    post<{ task_id: string }>('/api/add-section-video', { config, run_id: runId, section_number: sectionNumber }),
+
+  regenerateSectionVideo: (config: ConfigPayload, runId: string, sectionNumber: number) =>
+    post<{ task_id: string }>('/api/regenerate-section-video', { config, run_id: runId, section_number: sectionNumber }),
+
+  updateSectionVideos: (runId: string, sectionNumber: number, videoPaths: string[]) =>
+    post<{ ok: boolean; script: Record<string, unknown> }>('/api/update-section-videos', { run_id: runId, section_number: sectionNumber, video_paths: videoPaths }),
 
   uploadImage: async (runId: string, sectionNumber: number, file: File) => {
     const form = new FormData();

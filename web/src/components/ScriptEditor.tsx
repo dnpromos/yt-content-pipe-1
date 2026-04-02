@@ -265,7 +265,7 @@ function SpecialBlock({ label, kind, narration, imagePrompt, imagePath, imagePat
           </div>
           <div className="flex flex-wrap gap-2">
             {videoPaths.map((p, i) => (
-              <video key={i} src={api.fileUrl(p)} controls onClick={(e) => { e.preventDefault(); openLightbox(api.fileUrl(p), 'video'); }} className="w-40 rounded border border-edge cursor-zoom-in" />
+              <video key={i} src={`${api.fileUrl(p)}#t=0.5`} preload="metadata" muted playsInline onClick={(e) => { e.preventDefault(); openLightbox(api.fileUrl(p), 'video'); }} className="w-40 rounded border border-edge cursor-zoom-in" />
             ))}
           </div>
         </div>

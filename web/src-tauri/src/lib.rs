@@ -1,6 +1,9 @@
+use std::sync::Mutex;
 use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
-use tauri_plugin_shell::process::CommandEvent;
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
+
+struct SidecarChild(Mutex<Option<CommandChild>>);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -29,6 +32,9 @@ pub fn run() {
                 let (mut rx, child) = sidecar.spawn()
                     .expect("failed to spawn python-backend sidecar");
 
+                // Store child in app state so we can kill it on exit
+                app.manage(SidecarChild(Mutex::new(Some(child))));
+
                 // Log sidecar stdout/stderr for troubleshooting
                 tauri::async_runtime::spawn(async move {
                     while let Some(event) = rx.recv().await {
@@ -47,12 +53,19 @@ pub fn run() {
                         }
                     }
                 });
-
-                // Keep child alive so the process isn't dropped
-                app.manage(child);
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                if let Some(state) = app_handle.try_state::<SidecarChild>() {
+                    if let Some(mut child) = state.0.lock().unwrap().take() {
+                        eprintln!("[app] killing sidecar process...");
+                        let _ = child.kill();
+                    }
+                }
+            }
+        });
 }

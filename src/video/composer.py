@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import platform
 import time
+import traceback
 from pathlib import Path
 
 import numpy as np
@@ -184,11 +185,8 @@ def _build_video_section_clip(
             vid = concatenate_videoclips([vid.copy() if i > 0 else vid for i in range(loops_needed)])
         vid = vid.subclipped(0, total_duration)
 
-    for raw in raw_clips:
-        try:
-            raw.close()
-        except Exception:
-            pass
+    # NOTE: Do NOT close raw_clips here — derived clips share the same
+    # reader. They will be cleaned up when compose_video closes everything.
 
     # Attach narration audio
     audio = audio.with_start(0.5)
@@ -361,9 +359,11 @@ def compose_video(
         if not section.audio_path or (not has_video and not has_image):
             log(f"skip section {section.number}: missing assets")
             continue
-        # Insert silent gap between sections
-        if section_clips_added > 0 and config.section_gap > 0:
+        # Insert silent gap between sections (only for cut transitions;
+        # crossfade/slide already provide visual separation)
+        if section_clips_added > 0 and config.section_gap > 0 and config.transition == "cut":
             gap = ColorClip(resolution, color=(0, 0, 0), duration=config.section_gap)
+            gap = gap.with_fps(config.fps)
             clips.append(gap)
         log(f"building section {section.number}: {section.heading}")
         if has_video:
@@ -406,6 +406,16 @@ def compose_video(
     if not clips:
         raise RuntimeError("No clips were generated. Check that all assets exist.")
 
+    # Validate all clips before joining
+    for i, c in enumerate(clips):
+        if c is None:
+            log(f"WARNING: clip {i} is None, removing")
+        elif not hasattr(c, 'duration') or c.duration is None:
+            log(f"WARNING: clip {i} has no duration")
+        else:
+            log(f"clip {i}: duration={c.duration:.1f}s, size={getattr(c, 'size', 'unknown')}")
+    clips = [c for c in clips if c is not None]
+
     # Join with transitions
     log(f"joining {len(clips)} clips with '{config.transition}' transition...")
     final = join_clips(clips, config.transition, config.transition_duration)
@@ -416,33 +426,45 @@ def compose_video(
     frame_logger = _FrameLogger(total_frames=total_frames)
     log(f"encoding {total_frames} frames at {config.fps}fps...")
 
-    if platform.system() == "Darwin":
-        final.write_videofile(
-            str(output_path),
-            fps=config.fps,
-            codec="h264_videotoolbox",
-            audio_codec="aac",
-            threads=os.cpu_count() or 8,
-            preset=config.encoding_preset,
-            pixel_format="yuv420p",
-            logger=frame_logger,
-        )
-    else:
-        final.write_videofile(
-            str(output_path),
-            fps=config.fps,
-            codec="libx264",
-            audio_codec="aac",
-            threads=os.cpu_count() or 8,
-            preset=config.encoding_preset,
-            pixel_format="yuv420p",
-            logger=frame_logger,
-        )
-
-    # Clean up
-    for clip in clips:
-        clip.close()
-    final.close()
+    try:
+        if platform.system() == "Darwin":
+            # VideoToolbox does not support libx264 -preset values;
+            # use ffmpeg_params for HW-encoder options instead.
+            final.write_videofile(
+                str(output_path),
+                fps=config.fps,
+                codec="h264_videotoolbox",
+                audio_codec="aac",
+                threads=os.cpu_count() or 8,
+                pixel_format="yuv420p",
+                ffmpeg_params=["-realtime", "0", "-allow_sw", "1"],
+                logger=frame_logger,
+            )
+        else:
+            final.write_videofile(
+                str(output_path),
+                fps=config.fps,
+                codec="libx264",
+                audio_codec="aac",
+                threads=os.cpu_count() or 8,
+                preset=config.encoding_preset,
+                pixel_format="yuv420p",
+                logger=frame_logger,
+            )
+    except Exception as e:
+        log(f"ENCODING ERROR: {e}")
+        log(traceback.format_exc())
+        raise
+    finally:
+        for clip in clips:
+            try:
+                clip.close()
+            except Exception:
+                pass
+        try:
+            final.close()
+        except Exception:
+            pass
 
     file_mb = output_path.stat().st_size / (1024 * 1024)
     log(f"video saved: {output_path.name} ({file_mb:.1f} MB)")

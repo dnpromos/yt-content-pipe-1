@@ -16,7 +16,7 @@ if getattr(sys, 'frozen', False):
     _data_dir.mkdir(parents=True, exist_ok=True)
     os.chdir(_data_dir)
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -30,6 +30,7 @@ from src.pipeline import (
     assemble_video,
     regenerate_single_image,
     regenerate_section_images,
+    regenerate_section_videos,
     save_script,
     load_script,
 )
@@ -84,9 +85,22 @@ pipelog.add_callback(_ws_log_callback)
 # In-memory task tracking
 # ---------------------------------------------------------------------------
 tasks: dict[str, dict] = {}
+_active_pipeline_tasks: set[asyncio.Task] = set()
 
 async def _broadcast_task(task_id: str, data: dict):
     await manager.broadcast({"type": "task", "task_id": task_id, **data})
+
+@app.on_event("shutdown")
+async def _on_shutdown():
+    """Cancel all in-flight pipeline and Wiro tasks on server shutdown."""
+    for task in _active_pipeline_tasks:
+        task.cancel()
+    _active_pipeline_tasks.clear()
+    try:
+        from src.providers.wiro_client import active_wiro_tasks
+        active_wiro_tasks.clear()
+    except Exception:
+        pass
 
 # ---------------------------------------------------------------------------
 # Request models
@@ -181,6 +195,20 @@ class UpdateSectionImagesRequest(BaseModel):
 class DeleteImageRequest(BaseModel):
     run_id: str
     image_path: str
+
+class DeleteVideoRequest(BaseModel):
+    run_id: str
+    video_path: str
+
+class RegenerateSectionVideoRequest(BaseModel):
+    config: ConfigRequest
+    run_id: str
+    section_number: int
+
+class UpdateSectionVideosRequest(BaseModel):
+    run_id: str
+    section_number: int
+    video_paths: list[str]
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -320,7 +348,7 @@ async def get_run(run_id: str):
     run_dir = _get_run_dir(run_id)
     script_file = run_dir / "script.json"
     if not script_file.exists():
-        return {"error": "Run not found"}, 404
+        raise HTTPException(status_code=404, detail="Run not found")
     script = load_script(script_file)
     config_data = _load_run_config(run_dir)
     return {"script": _script_to_dict(script), "run_id": run_id, "config": config_data}
@@ -390,11 +418,12 @@ async def kill_all_tasks():
 
 @app.get("/api/files/{file_path:path}")
 async def serve_file(file_path: str):
-    full_path = Path(file_path)
+    output_dir = Path("output").resolve()
+    full_path = Path(file_path).resolve()
+    if not str(full_path).startswith(str(output_dir)):
+        raise HTTPException(status_code=403, detail="Access denied")
     if not full_path.exists():
-        full_path = Path("output") / file_path
-    if not full_path.exists():
-        return {"error": "File not found"}, 404
+        raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(full_path)
 
 
@@ -422,9 +451,11 @@ async def api_generate_script(req: GenerateScriptRequest):
                 "script": _script_to_dict(script),
             })
         except Exception as e:
-            await _broadcast_task(task_id, {"status": "error", "error": str(e)})
+            await _broadcast_task(task_id, {"status": "error", "step": "script", "error": str(e)})
 
-    asyncio.create_task(_run())
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
     return {"task_id": task_id}
 
 
@@ -435,10 +466,19 @@ async def api_generate_assets(req: GenerateAssetsRequest):
     run_dir = _get_run_dir(req.run_id)
     script = load_script(run_dir / "script.json")
 
+    async def _on_asset_progress(updated: Script):
+        save_script(updated, run_dir)
+        await _broadcast_task(task_id, {
+            "status": "progress",
+            "step": "assets",
+            "run_id": req.run_id,
+            "script": _script_to_dict(updated),
+        })
+
     async def _run():
         try:
             await _broadcast_task(task_id, {"status": "running", "step": "assets"})
-            updated = await generate_assets(config, script, run_dir, force_images=req.force_images)
+            updated = await generate_assets(config, script, run_dir, force_images=req.force_images, on_progress=_on_asset_progress)
             save_script(updated, run_dir)
             await _broadcast_task(task_id, {
                 "status": "done",
@@ -447,9 +487,11 @@ async def api_generate_assets(req: GenerateAssetsRequest):
                 "script": _script_to_dict(updated),
             })
         except Exception as e:
-            await _broadcast_task(task_id, {"status": "error", "error": str(e)})
+            await _broadcast_task(task_id, {"status": "error", "step": "assets", "error": str(e)})
 
-    asyncio.create_task(_run())
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
     return {"task_id": task_id}
 
 
@@ -472,9 +514,11 @@ async def api_assemble_video(req: AssembleRequest):
                 "video_path": str(video_path),
             })
         except Exception as e:
-            await _broadcast_task(task_id, {"status": "error", "error": str(e)})
+            await _broadcast_task(task_id, {"status": "error", "step": "video", "error": str(e)})
 
-    asyncio.create_task(_run())
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
     return {"task_id": task_id}
 
 
@@ -502,7 +546,16 @@ async def api_full_pipeline(req: GenerateScriptRequest):
                 "script": _script_to_dict(script),
             })
 
-            script = await generate_assets(config, script, run_dir)
+            async def _on_asset_progress(updated: Script):
+                save_script(updated, run_dir)
+                await _broadcast_task(task_id, {
+                    "status": "progress",
+                    "step": "assets",
+                    "run_id": run_dir.name,
+                    "script": _script_to_dict(updated),
+                })
+
+            script = await generate_assets(config, script, run_dir, on_progress=_on_asset_progress)
             save_script(script, run_dir)
 
             missing = [
@@ -530,9 +583,11 @@ async def api_full_pipeline(req: GenerateScriptRequest):
                 "video_path": str(video_path),
             })
         except Exception as e:
-            await _broadcast_task(task_id, {"status": "error", "error": str(e)})
+            await _broadcast_task(task_id, {"status": "error", "step": "assets", "error": str(e)})
 
-    asyncio.create_task(_run())
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
     return {"task_id": task_id}
 
 
@@ -543,10 +598,19 @@ async def api_retry_missing(req: RetryMissingRequest):
     run_dir = _get_run_dir(req.run_id)
     script = load_script(run_dir / "script.json")
 
+    async def _on_retry_progress(updated: Script):
+        save_script(updated, run_dir)
+        await _broadcast_task(task_id, {
+            "status": "progress",
+            "step": "retry",
+            "run_id": req.run_id,
+            "script": _script_to_dict(updated),
+        })
+
     async def _run():
         try:
             await _broadcast_task(task_id, {"status": "running", "step": "retry"})
-            updated = await generate_assets(config, script, run_dir)
+            updated = await generate_assets(config, script, run_dir, on_progress=_on_retry_progress)
             save_script(updated, run_dir)
             await _broadcast_task(task_id, {
                 "status": "done",
@@ -555,9 +619,11 @@ async def api_retry_missing(req: RetryMissingRequest):
                 "script": _script_to_dict(updated),
             })
         except Exception as e:
-            await _broadcast_task(task_id, {"status": "error", "error": str(e)})
+            await _broadcast_task(task_id, {"status": "error", "step": "retry", "error": str(e)})
 
-    asyncio.create_task(_run())
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
     return {"task_id": task_id}
 
 
@@ -591,9 +657,11 @@ async def api_retry_section(req: RetrySectionRequest):
                 "script": _script_to_dict(script),
             })
         except Exception as e:
-            await _broadcast_task(task_id, {"status": "error", "error": str(e)})
+            await _broadcast_task(task_id, {"status": "error", "step": "retry_section", "error": str(e)})
 
-    asyncio.create_task(_run())
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
     return {"task_id": task_id}
 
 
@@ -642,9 +710,11 @@ async def api_generate_extra_images(req: GenerateExtraImagesRequest):
                 "script": _script_to_dict(script),
             })
         except Exception as e:
-            await _broadcast_task(task_id, {"status": "error", "error": str(e)})
+            await _broadcast_task(task_id, {"status": "error", "step": "extra_images", "error": str(e)})
 
-    asyncio.create_task(_run())
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
     return {"task_id": task_id}
 
 
@@ -669,12 +739,26 @@ async def api_update_section_images(req: UpdateSectionImagesRequest):
     return {"ok": True, "script": _script_to_dict(script)}
 
 
+class UpdateIntroImagesRequest(BaseModel):
+    run_id: str
+    image_paths: list[str]
+
+@app.post("/api/update-intro-images")
+async def api_update_intro_images(req: UpdateIntroImagesRequest):
+    run_dir = _get_run_dir(req.run_id)
+    script = load_script(run_dir / "script.json")
+    all_paths = [Path(p) for p in req.image_paths]
+    script.intro_image_path = all_paths[0] if all_paths else None
+    script.intro_image_paths = all_paths[1:] if len(all_paths) > 1 else []
+    save_script(script, run_dir)
+    return {"ok": True, "script": _script_to_dict(script)}
+
+
 @app.post("/api/delete-image")
 async def api_delete_image(req: DeleteImageRequest):
     run_dir = _get_run_dir(req.run_id)
     img_path = Path(req.image_path)
-    if not img_path.is_absolute():
-        img_path = run_dir / req.image_path
+    # Paths from frontend are already relative to project root (e.g. "output/run_xxx/images/intro.png")
     img_str = str(img_path.resolve())
     if img_path.exists():
         img_path.unlink()
@@ -689,10 +773,136 @@ async def api_delete_image(req: DeleteImageRequest):
         p for p in (script.intro_image_paths or [])
         if str(Path(str(p)).resolve()) != img_str
     ]
+    # Promote next intro image as primary if primary was deleted
+    if not script.intro_image_path and script.intro_image_paths:
+        script.intro_image_path = script.intro_image_paths.pop(0)
     if script.outro_image_path and str(Path(str(script.outro_image_path)).resolve()) == img_str:
         script.outro_image_path = None
     save_script(script, run_dir)
     return {"ok": True, "script": _script_to_dict(script)}
+
+
+@app.post("/api/delete-video")
+async def api_delete_video(req: DeleteVideoRequest):
+    run_dir = _get_run_dir(req.run_id)
+    # Paths from frontend are relative to project root (e.g. "output/run_xxx/videos/clip.mp4")
+    vid_path = Path(req.video_path)
+    vid_str = str(vid_path.resolve())
+    if vid_path.exists():
+        vid_path.unlink()
+    script = load_script(run_dir / "script.json")
+    for section in script.sections:
+        section.video_paths = [p for p in section.video_paths if str(Path(str(p)).resolve()) != vid_str]
+        if section.video_path and str(Path(str(section.video_path)).resolve()) == vid_str:
+            section.video_path = section.video_paths[0] if section.video_paths else None
+    script.intro_video_paths = [
+        p for p in (script.intro_video_paths or [])
+        if str(Path(str(p)).resolve()) != vid_str
+    ]
+    save_script(script, run_dir)
+    return {"ok": True, "script": _script_to_dict(script)}
+
+
+@app.post("/api/update-section-videos")
+async def api_update_section_videos(req: UpdateSectionVideosRequest):
+    run_dir = _get_run_dir(req.run_id)
+    script = load_script(run_dir / "script.json")
+    section = next((s for s in script.sections if s.number == req.section_number), None)
+    if not section:
+        return {"error": "Section not found"}
+    section.video_paths = [Path(p) for p in req.video_paths]
+    section.video_path = section.video_paths[0] if section.video_paths else None
+    save_script(script, run_dir)
+    return {"ok": True, "script": _script_to_dict(script)}
+
+
+@app.post("/api/add-section-video")
+async def api_add_section_video(req: RegenerateSectionVideoRequest):
+    """Generate one extra video clip and APPEND to existing section.video_paths."""
+    task_id = str(uuid.uuid4())[:8]
+    config = _build_config(req.config)
+    run_dir = _get_run_dir(req.run_id)
+    script = load_script(run_dir / "script.json")
+    section = next((s for s in script.sections if s.number == req.section_number), None)
+    if not section:
+        return {"error": "Section not found"}
+
+    prompt = section.video_prompt or (section.image_prompts[0] if section.image_prompts else section.heading)
+    videos_dir = run_dir / "videos"
+    videos_dir.mkdir(parents=True, exist_ok=True)
+    existing = list(videos_dir.glob(f"section_{req.section_number:02d}*.mp4"))
+    idx = len(existing)
+    suffix = f"_{chr(97 + idx)}" if idx > 0 else ""
+    vid_path = videos_dir / f"section_{req.section_number:02d}{suffix}.mp4"
+
+    async def _run():
+        try:
+            await _broadcast_task(task_id, {"status": "running", "step": "retry_section"})
+            video_gen = _get_provider("video_gen", config.video_gen.provider, config.video_gen)
+            await video_gen.generate_video(prompt, vid_path, duration=config.video.video_gen_duration)
+            if vid_path.exists():
+                if vid_path not in section.video_paths:
+                    section.video_paths.append(vid_path)
+                if not section.video_path:
+                    section.video_path = vid_path
+            save_script(script, run_dir)
+            await _broadcast_task(task_id, {
+                "status": "done",
+                "step": "retry_section",
+                "run_id": req.run_id,
+                "script": _script_to_dict(script),
+            })
+        except Exception as e:
+            await _broadcast_task(task_id, {"status": "error", "step": "retry_section", "error": str(e)})
+
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
+    return {"task_id": task_id}
+
+
+@app.post("/api/regenerate-section-video")
+async def api_regenerate_section_video(req: RegenerateSectionVideoRequest):
+    task_id = str(uuid.uuid4())[:8]
+    config = _build_config(req.config)
+    run_dir = _get_run_dir(req.run_id)
+    script = load_script(run_dir / "script.json")
+    section = next((s for s in script.sections if s.number == req.section_number), None)
+    if not section:
+        return {"error": "Section not found"}
+
+    # Build prompts: use video_prompt if available, fall back to image_prompts or heading
+    vps = config.video.videos_per_section
+    if section.video_prompt:
+        prompts = [section.video_prompt] * vps
+    elif section.image_prompts:
+        prompts = (section.image_prompts * ((vps // len(section.image_prompts)) + 1))[:vps]
+    else:
+        prompts = [section.heading] * vps
+
+    videos_dir = run_dir / "videos"
+
+    async def _run():
+        try:
+            await _broadcast_task(task_id, {"status": "running", "step": "retry_section"})
+            paths = await regenerate_section_videos(config, prompts, req.section_number, videos_dir)
+            section.video_paths = paths
+            section.video_path = paths[0] if paths else None
+            save_script(script, run_dir)
+            await _broadcast_task(task_id, {
+                "status": "done",
+                "step": "retry_section",
+                "run_id": req.run_id,
+                "section_number": req.section_number,
+                "script": _script_to_dict(script),
+            })
+        except Exception as e:
+            await _broadcast_task(task_id, {"status": "error", "step": "retry_section", "error": str(e)})
+
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
+    return {"task_id": task_id}
 
 
 @app.post("/api/upload-image")
@@ -733,13 +943,26 @@ async def api_regenerate_special_image(req: RegenerateSpecialImageRequest):
 
     if req.kind == "intro":
         prompt = req.prompt.strip() or script.intro_image_prompt or ""
-        img_path = images_dir / "intro.png"
+        base_name = "intro"
     else:
         prompt = req.prompt.strip() or script.outro_image_prompt or ""
-        img_path = images_dir / "outro.png"
+        base_name = "outro"
 
     if not prompt:
         return {"error": "No prompt available"}
+
+    # Determine a unique filename: if primary already exists, use next suffix
+    primary_path = images_dir / f"{base_name}.png"
+    if primary_path.exists() and req.kind == "intro":
+        suffixes = ["_b", "_c", "_d", "_e", "_f", "_g", "_h"]
+        img_path = primary_path  # fallback
+        for s in suffixes:
+            candidate = images_dir / f"{base_name}{s}.png"
+            if not candidate.exists():
+                img_path = candidate
+                break
+    else:
+        img_path = primary_path
 
     async def _run():
         try:
@@ -748,7 +971,11 @@ async def api_regenerate_special_image(req: RegenerateSpecialImageRequest):
             await _generate_image_extra(image_gen, prompt, img_path, f"{req.kind.title()} image")
             script_fresh = load_script(run_dir / "script.json")
             if req.kind == "intro":
-                script_fresh.intro_image_path = img_path
+                if not script_fresh.intro_image_path or not Path(str(script_fresh.intro_image_path)).exists():
+                    script_fresh.intro_image_path = img_path
+                existing = {str(p) for p in script_fresh.intro_image_paths}
+                if str(img_path) not in existing:
+                    script_fresh.intro_image_paths.append(img_path)
             else:
                 script_fresh.outro_image_path = img_path
             save_script(script_fresh, run_dir)
@@ -759,9 +986,11 @@ async def api_regenerate_special_image(req: RegenerateSpecialImageRequest):
                 "script": _script_to_dict(script_fresh),
             })
         except Exception as e:
-            await _broadcast_task(task_id, {"status": "error", "error": str(e)})
+            await _broadcast_task(task_id, {"status": "error", "step": "extra_images", "error": str(e)})
 
-    asyncio.create_task(_run())
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
     return {"task_id": task_id}
 
 
@@ -774,13 +1003,30 @@ async def api_upload_special_image(
     run_dir = _get_run_dir(run_id)
     images_dir = run_dir / "images"
     images_dir.mkdir(parents=True, exist_ok=True)
-    img_path = images_dir / f"{kind}.png"
+
+    # Determine a unique filename for intro uploads
+    primary_path = images_dir / f"{kind}.png"
+    if primary_path.exists() and kind == "intro":
+        suffixes = ["_b", "_c", "_d", "_e", "_f", "_g", "_h"]
+        img_path = primary_path  # fallback
+        for s in suffixes:
+            candidate = images_dir / f"{kind}{s}.png"
+            if not candidate.exists():
+                img_path = candidate
+                break
+    else:
+        img_path = primary_path
+
     content = await file.read()
     with open(img_path, "wb") as f:
         f.write(content)
     script = load_script(run_dir / "script.json")
     if kind == "intro":
-        script.intro_image_path = img_path
+        if not script.intro_image_path or not Path(str(script.intro_image_path)).exists():
+            script.intro_image_path = img_path
+        existing = {str(p) for p in script.intro_image_paths}
+        if str(img_path) not in existing:
+            script.intro_image_paths.append(img_path)
     else:
         script.outro_image_path = img_path
     save_script(script, run_dir)
@@ -823,12 +1069,24 @@ async def api_generate_toc_image(req: GenerateTocImageRequest):
                 "script": _script_to_dict(script_fresh),
             })
         except Exception as e:
-            await _broadcast_task(task_id, {"status": "error", "error": str(e)})
+            await _broadcast_task(task_id, {"status": "error", "step": "extra_images", "error": str(e)})
 
-    asyncio.create_task(_run())
+    t = asyncio.create_task(_run())
+    _active_pipeline_tasks.add(t)
+    t.add_done_callback(_active_pipeline_tasks.discard)
     return {"task_id": task_id}
 
 
 if __name__ == "__main__":
+    import socket
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    port = int(os.environ.get("PORT", 8000))
+    # Check if port is available before starting uvicorn
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        if s.connect_ex(("127.0.0.1", port)) == 0:
+            print(f"ERROR: port {port} is already in use. "
+                  f"Kill the other process or set PORT env var.",
+                  file=sys.stderr)
+            sys.exit(1)
+    uvicorn.run(app, host="0.0.0.0", port=port)

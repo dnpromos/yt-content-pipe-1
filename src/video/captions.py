@@ -120,16 +120,26 @@ def _render_caption_frame(
         texts = [word.word for word in words]
     full_text = " ".join(texts)
 
-    bbox = draw.textbbox((0, 0), full_text, font=font)
+    # Auto-shrink font if text exceeds available width (with margins)
+    max_text_w = int(w * 0.90)
+    current_font = font
+    bbox = draw.textbbox((0, 0), full_text, font=current_font)
     text_w = bbox[2] - bbox[0]
+    if text_w > max_text_w:
+        scale = max_text_w / text_w
+        shrunk_size = max(16, int(style.font_size * scale))
+        current_font = _load_font(style.font_path, shrunk_size)
+        bbox = draw.textbbox((0, 0), full_text, font=current_font)
+        text_w = bbox[2] - bbox[0]
     text_h = bbox[3] - bbox[1]
 
     y_pos = _get_y_position(resolution, text_h, style.position)
     x_start = (w - text_w) // 2
 
-    pad_x = int(style.font_size * _PAD_X_RATIO)
-    pad_y = int(style.font_size * _PAD_Y_RATIO)
-    radius = int(style.font_size * _RADIUS_RATIO)
+    effective_size = current_font.size if hasattr(current_font, 'size') else style.font_size
+    pad_x = int(effective_size * _PAD_X_RATIO)
+    pad_y = int(effective_size * _PAD_Y_RATIO)
+    radius = int(effective_size * _RADIUS_RATIO)
     bg_left = max(4, x_start - pad_x)
     bg_top = y_pos + bbox[1] - pad_y
     bg_right = min(w - 4, x_start + text_w + pad_x)
@@ -141,14 +151,14 @@ def _render_caption_frame(
     )
 
     cursor_x = x_start
-    shadow_offset = max(2, style.font_size // 20)
+    shadow_offset = max(2, effective_size // 20)
     for i, word_text in enumerate(texts):
         color = style.active_color if i == active_idx else style.text_color
 
-        draw.text((cursor_x + shadow_offset, y_pos + shadow_offset), word_text, font=font, fill=style.shadow_color)
-        draw.text((cursor_x, y_pos), word_text, font=font, fill=color)
+        draw.text((cursor_x + shadow_offset, y_pos + shadow_offset), word_text, font=current_font, fill=style.shadow_color)
+        draw.text((cursor_x, y_pos), word_text, font=current_font, fill=color)
 
-        word_bbox = draw.textbbox((0, 0), word_text + " ", font=font)
+        word_bbox = draw.textbbox((0, 0), word_text + " ", font=current_font)
         cursor_x += word_bbox[2] - word_bbox[0]
 
     return np.array(img)
@@ -211,7 +221,7 @@ def render_captions(
                 return _frame_cache[cache_key]
         return np.zeros((h, w, 4), dtype=np.uint8)
 
-    caption_clip = VideoClip(make_caption_frame, duration=clip.duration, ismask=False)
-    caption_clip = caption_clip.with_fps(clip.fps or 30)
+    caption_clip = VideoClip(make_caption_frame, duration=clip.duration, is_mask=False)
+    caption_clip = caption_clip.with_fps(getattr(clip, 'fps', None) or 30)
 
-    return CompositeVideoClip([clip, caption_clip], size=resolution)
+    return CompositeVideoClip([clip, caption_clip], size=resolution, bg_color=None)

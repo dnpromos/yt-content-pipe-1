@@ -62,11 +62,21 @@ function App() {
       if (status === 'error') {
         addLog(`error: ${data.error}`);
         setTaskId(null);
+        // Reset stage to last stable state so buttons become clickable again
+        if (step === 'video') setStage('assets_done');
+        else if (step === 'assets' || step === 'retry' || step === 'retry_section' || step === 'extra_images') setStage('assets_done');
+        else if (step === 'script') setStage('idle');
+        else setStage('assets_done');
         return;
       }
 
       if (data.run_id) setRunId(data.run_id as string);
       if (data.script) setScript(data.script as unknown as ScriptData);
+
+      if (status === 'progress') {
+        // Incremental update — script already set above, nothing else to change
+        return;
+      }
 
       if (status === 'running') {
         if (step === 'script') { setStage('scripting'); setUiStep(2 as UiStep); }
@@ -76,7 +86,7 @@ function App() {
 
       if (status === 'done') {
         if (step === 'script') { setStage('scripted'); setUiStep(2 as UiStep); }
-        else if (step === 'assets' || step === 'retry' || step === 'retry_section') { setStage('assets_done'); setUiStep(3 as UiStep); }
+        else if (step === 'assets' || step === 'retry' || step === 'retry_section' || step === 'extra_images') { setStage('assets_done'); setUiStep(3 as UiStep); }
         else if (step === 'video') {
           setStage('video_done');
           setUiStep(4 as UiStep);
