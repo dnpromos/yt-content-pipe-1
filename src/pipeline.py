@@ -375,7 +375,13 @@ async def generate_media(
             return
 
         if task_type == "intro_image":
-            script.intro_image_path = intro_image_path
+            img_idx = task_key or 0
+            suffix = "" if img_idx == 0 else f"_{chr(97 + img_idx)}"
+            intro_img = images_dir / f"intro{suffix}.png"
+            if img_idx == 0:
+                script.intro_image_path = intro_img
+            if intro_img not in script.intro_image_paths:
+                script.intro_image_paths.append(intro_img)
         elif task_type == "intro_video":
             vid_path = videos_dir / f"intro_{task_key:02d}.mp4"
             if vid_path not in script.intro_video_paths:
@@ -409,16 +415,22 @@ async def generate_media(
 
     tasks: list = []
 
-    # Intro image
-    intro_image_path = images_dir / "intro.png"
-    if script.intro_image_prompt and (force or not intro_image_path.exists()):
-        tasks.append(_run_media_task(
-            _generate_image_for_section(image_gen, script.intro_image_prompt, intro_image_path, "Intro"),
-            "intro_image", None,
-        ))
-    elif intro_image_path.exists():
-        log("skip intro image (exists)")
-        script.intro_image_path = intro_image_path
+    # Intro images
+    n_intro_imgs = getattr(config.video, 'intro_image_count', 1) or 1
+    for img_idx in range(n_intro_imgs):
+        suffix = "" if img_idx == 0 else f"_{chr(97 + img_idx)}"
+        intro_img = images_dir / f"intro{suffix}.png"
+        if script.intro_image_prompt and (force or not intro_img.exists()):
+            tasks.append(_run_media_task(
+                _generate_image_for_section(image_gen, script.intro_image_prompt, intro_img, f"Intro img {img_idx + 1}"),
+                "intro_image", img_idx,
+            ))
+        elif intro_img.exists():
+            log(f"skip intro img {img_idx + 1} (exists)")
+            if img_idx == 0:
+                script.intro_image_path = intro_img
+            if intro_img not in script.intro_image_paths:
+                script.intro_image_paths.append(intro_img)
 
     # Intro video clips
     if use_video and video_gen:

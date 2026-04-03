@@ -90,6 +90,7 @@ const defaultConfig: ConfigPayload = {
   video_gen_draft: 'false',
   videos_per_section: 1,
   video_gen_duration: 5,
+  intro_image_count: 1,
   intro_video_count: 2,
   captions_enabled: true,
   caption_font: 'assets/fonts/Montserrat-Bold.ttf',

@@ -39,6 +39,7 @@ export type ConfigPayload = {
   video_gen_draft: string;
   videos_per_section: number;
   video_gen_duration: number;
+  intro_image_count: number;
   intro_video_count: number;
   captions_enabled: boolean;
   caption_font: string;

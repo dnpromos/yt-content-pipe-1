@@ -1,5 +1,12 @@
 # yt-content-pipe
 
+
+source .venv/bin/activate
+python3 server.py
+
+cd /Users/onurozcan/Documents/GitHub/yt-content-pipe/web
+npm run dev
+
 A Python pipeline that generates listicle YouTube videos by orchestrating LLM script writing, AI voice synthesis, AI image generation, and automated video assembly with effects.
 
 ## Quick Start

@@ -191,16 +191,45 @@ export function StepMedia() {
         </div>
       )}
 
-      {/* Media Config */}
+      {/* Intro Card */}
+      <div className="bg-card border border-edge rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-ink-2 flex items-center gap-2">
+          <Sparkles size={16} className="text-accent" />
+          Intro Media
+        </h3>
+
+        <div className={`grid ${sectionIsVideo ? 'grid-cols-4' : 'grid-cols-3'} gap-2 p-3 bg-mist/50 border border-edge/50 rounded-lg`}>
+          <div>
+            <Label>Intro images</Label>
+            <Select value={String(config.intro_image_count)} onChange={(v) => setConfig({ intro_image_count: Number(v) })} options={['1', '2', '3', '4', '5']} />
+          </div>
+          <div>
+            <Label>Image style</Label>
+            <Select value={config.image_style} onChange={(v) => setConfig({ image_style: v })} options={IMAGE_STYLES} />
+          </div>
+          <div>
+            <Label>Image resolution</Label>
+            <Select value={config.image_resolution} onChange={(v) => setConfig({ image_resolution: v })} options={['1K', '2K', '4K']} />
+          </div>
+          {sectionIsVideo && (
+            <div>
+              <Label>Intro video clips</Label>
+              <Select value={String(config.intro_video_count)} onChange={(v) => setConfig({ intro_video_count: Number(v) })} options={['0', '1', '2', '3', '4', '5']} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sections Card */}
       <div className="bg-card border border-edge rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-ink-2 flex items-center gap-2">
           <ImageIcon size={16} className="text-accent" />
-          Media Configuration
+          Section Media
         </h3>
 
         {/* Media type toggle */}
         <div className="space-y-1.5">
-          <Label>Media type for sections</Label>
+          <Label>Media type</Label>
           <div className="flex rounded-lg overflow-hidden border border-edge">
             <button onClick={() => setConfig({ section_media_type: 'image' })}
               className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors cursor-pointer ${
@@ -222,7 +251,7 @@ export function StepMedia() {
           <div className="flex items-center gap-3 p-3 bg-accent/5 border border-accent/20 rounded-lg">
             <Sparkles size={14} className="text-accent flex-shrink-0" />
             <div className="flex-1 text-xs text-ink-3">
-              Based on avg section duration ({avgDuration.toFixed(1)}s), suggested:
+              Based on avg duration ({avgDuration.toFixed(1)}s):
               <span className="font-semibold text-ink ml-1">
                 {sectionIsVideo
                   ? `${suggestedVideos} clip${suggestedVideos > 1 ? 's' : ''}/section`
@@ -258,14 +287,10 @@ export function StepMedia() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2 p-3 bg-mist/50 border border-edge/50 rounded-lg">
+          <div className="grid grid-cols-2 gap-2 p-3 bg-mist/50 border border-edge/50 rounded-lg">
             <div>
               <Label>Images per section</Label>
               <Select value={String(config.images_per_section)} onChange={(v) => setConfig({ images_per_section: Number(v) })} options={['1', '2', '3', '4', '5', '6', '7', '8']} />
-            </div>
-            <div>
-              <Label>Style</Label>
-              <Select value={config.image_style} onChange={(v) => setConfig({ image_style: v })} options={IMAGE_STYLES} />
             </div>
             <div>
               <Label>Resolution</Label>
@@ -295,7 +320,25 @@ export function StepMedia() {
             </div>
           </div>
         )}
+      </div>
 
+      {/* Outro Card */}
+      <div className="bg-card border border-edge rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-ink-2 flex items-center gap-2">
+          <ImageIcon size={16} className="text-accent" />
+          Outro Media
+        </h3>
+        <p className="text-xs text-ink-4">1 AI image is generated for the outro (image only, no video).</p>
+        <div className="grid grid-cols-2 gap-2 p-3 bg-mist/50 border border-edge/50 rounded-lg">
+          <div>
+            <Label>Image style</Label>
+            <Select value={config.image_style} onChange={(v) => setConfig({ image_style: v })} options={IMAGE_STYLES} />
+          </div>
+          <div>
+            <Label>Image resolution</Label>
+            <Select value={config.image_resolution} onChange={(v) => setConfig({ image_resolution: v })} options={['1K', '2K', '4K']} />
+          </div>
+        </div>
       </div>
 
       {/* Cost */}

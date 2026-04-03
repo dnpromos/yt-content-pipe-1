@@ -83,6 +83,7 @@ class VideoConfig(BaseModel):
     section_media_type: str = "image"  # "image" or "video"
     videos_per_section: int = 1  # 1-5 video clips per section
     video_gen_duration: int = 5  # 1-10 seconds per clip
+    intro_image_count: int = 1  # number of images for intro (1 = thumbnail only)
     intro_video_count: int = 2  # number of overview video clips for intro
     captions_enabled: bool = True
     caption_font: str = "assets/fonts/Montserrat-Bold.ttf"

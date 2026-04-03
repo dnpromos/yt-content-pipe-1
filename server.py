@@ -132,6 +132,7 @@ class ConfigRequest(BaseModel):
     video_gen_draft: str = "false"
     videos_per_section: int = 1
     video_gen_duration: int = 5
+    intro_image_count: int = 1
     intro_video_count: int = 2
     captions_enabled: bool = True
     caption_font: str = "assets/fonts/Montserrat-Bold.ttf"
@@ -273,6 +274,7 @@ def _build_config(req: ConfigRequest) -> AppConfig:
             section_media_type=req.section_media_type,
             videos_per_section=req.videos_per_section,
             video_gen_duration=req.video_gen_duration,
+            intro_image_count=req.intro_image_count,
             intro_video_count=req.intro_video_count,
             captions_enabled=req.captions_enabled,
             caption_font=req.caption_font,

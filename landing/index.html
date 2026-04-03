@@ -74,8 +74,13 @@
     /* SHOWCASE VIDEO */
     .showcase { margin-top: 48px; }
     .showcase-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-4); margin-bottom: 16px; text-align: center; }
-    .showcase-video { border-radius: var(--radius); overflow: hidden; background: var(--white); box-shadow: 0 8px 32px rgba(0,0,0,.06); max-width: 800px; margin: 0 auto; }
+    .showcase-video { border-radius: var(--radius); overflow: hidden; background: var(--white); box-shadow: 0 8px 32px rgba(0,0,0,.06); max-width: 800px; margin: 0 auto; cursor: pointer; position: relative; }
     .showcase-video iframe { width: 100%; aspect-ratio: 16/9; border: none; display: block; }
+    .video-thumb { position: relative; width: 100%; aspect-ratio: 16/9; overflow: hidden; }
+    .video-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .video-thumb .play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 72px; height: 72px; background: rgba(0,0,0,.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background .2s, transform .2s; }
+    .showcase-video:hover .play-btn { background: var(--accent); transform: translate(-50%, -50%) scale(1.1); }
+    .video-thumb .play-btn svg { width: 30px; height: 30px; fill: #fff; margin-left: 4px; }
 
     /* VERTICAL SECTION */
     .vertical-section { padding: 100px 0; }
@@ -85,9 +90,14 @@
     .format-pills { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
     .format-pill { font-size: 15px; font-weight: 700; padding: 10px 22px; border-radius: 100px; background: var(--white); color: var(--text-2); box-shadow: 0 2px 8px rgba(0,0,0,.04); }
     .shorts-row { display: flex; gap: 16px; justify-content: center; overflow-x: auto; padding: 4px; }
-    .short-card { width: 200px; flex-shrink: 0; border-radius: var(--radius); overflow: hidden; background: var(--white); box-shadow: 0 8px 28px rgba(0,0,0,.06); transition: transform .2s, box-shadow .3s; }
+    .short-card { width: 200px; flex-shrink: 0; border-radius: var(--radius); overflow: hidden; background: var(--white); box-shadow: 0 8px 28px rgba(0,0,0,.06); transition: transform .2s, box-shadow .3s; cursor: pointer; position: relative; }
     .short-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,.1); }
     .short-card iframe { width: 100%; aspect-ratio: 9/16; border: none; display: block; }
+    .short-thumb { position: relative; width: 100%; aspect-ratio: 9/16; overflow: hidden; }
+    .short-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .short-thumb .play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 56px; height: 56px; background: rgba(0,0,0,.65); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background .2s, transform .2s; }
+    .short-card:hover .play-btn { background: var(--accent); transform: translate(-50%, -50%) scale(1.1); }
+    .play-btn svg { width: 24px; height: 24px; fill: #fff; margin-left: 3px; }
     @media (max-width: 768px) { .vertical-header h3 { font-size: 32px; } .shorts-row { gap: 12px; justify-content: flex-start; } .short-card { width: 160px; } }
 
     /* DIFFERENTIATOR */
@@ -259,10 +269,7 @@
     <p class="hero-note">One-time payment · Mac & Windows · Free updates forever</p>
 
     <div class="showcase">
-      <div class="showcase-label">This entire video was made by the app — zero editing</div>
-      <div class="showcase-video">
-        <iframe src="https://www.youtube-nocookie.com/embed/WHwIdyL0fFE?rel=0&modestbranding=1" title="Full AI-generated landscape video" allowfullscreen loading="lazy"></iframe>
-      </div>
+      <div class="showcase-video" onclick="playVideo(this,'r77HfXRnpp4')"><div class="video-thumb"><img src="https://i.ytimg.com/vi/r77HfXRnpp4/maxresdefault.jpg" alt="AI-generated video"><div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg></div></div></div>
     </div>
   </div></section>
 
@@ -279,12 +286,26 @@
       </div>
     </div>
     <div class="shorts-row">
-      <div class="short-card"><iframe src="https://www.youtube-nocookie.com/embed/Bq011PR6bfA?rel=0&modestbranding=1" title="AI-generated short 1" allowfullscreen loading="lazy"></iframe></div>
-      <div class="short-card"><iframe src="https://www.youtube-nocookie.com/embed/fpXQEDzMxgE?rel=0&modestbranding=1" title="AI-generated short 2" allowfullscreen loading="lazy"></iframe></div>
-      <div class="short-card"><iframe src="https://www.youtube-nocookie.com/embed/89yP_UvhF58?rel=0&modestbranding=1" title="AI-generated short 3" allowfullscreen loading="lazy"></iframe></div>
-      <div class="short-card"><iframe src="https://www.youtube-nocookie.com/embed/89yP_UvhF58?rel=0&modestbranding=1" title="AI-generated short 4" allowfullscreen loading="lazy"></iframe></div>
-      <div class="short-card"><iframe src="https://www.youtube-nocookie.com/embed/Bq011PR6bfA?rel=0&modestbranding=1" title="AI-generated short 5" allowfullscreen loading="lazy"></iframe></div>
+      <div class="short-card" onclick="playShort(this,'fpXQEDzMxgE')"><div class="short-thumb"><img src="https://i.ytimg.com/vi/fpXQEDzMxgE/frame0.jpg" alt="AI short" loading="lazy"><div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg></div></div></div>
+      <div class="short-card" onclick="playShort(this,'89yP_UvhF58')"><div class="short-thumb"><img src="https://i.ytimg.com/vi/89yP_UvhF58/frame0.jpg" alt="AI short" loading="lazy"><div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg></div></div></div>
+      <div class="short-card" onclick="playShort(this,'GyCVgMLDLTQ')"><div class="short-thumb"><img src="https://i.ytimg.com/vi/GyCVgMLDLTQ/frame0.jpg" alt="AI short" loading="lazy"><div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg></div></div></div>
+      <div class="short-card" onclick="playShort(this,'rZB7NPnZDXs')"><div class="short-thumb"><img src="https://i.ytimg.com/vi/rZB7NPnZDXs/frame0.jpg" alt="AI short" loading="lazy"><div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg></div></div></div>
+      <div class="short-card" onclick="playShort(this,'imtUf8Ty8KQ')"><div class="short-thumb"><img src="https://i.ytimg.com/vi/imtUf8Ty8KQ/frame0.jpg" alt="AI short" loading="lazy"><div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg></div></div></div>
     </div>
+  </div></section>
+
+  <!-- LANDSCAPE SECTION -->
+  <section class="vertical-section" style="padding-top:60px;"><div class="container">
+    <div class="vertical-header">
+      <h3>Prefer landscape?<br>Full 16:9 videos, ready to upload.</h3>
+      <p>Long-form YouTube content with cinematic AI video clips, multi-scene storytelling, smooth transitions, and professional pacing — all generated from a single topic in minutes.</p>
+      <div class="format-pills">
+        <span class="format-pill">YouTube</span>
+        <span class="format-pill">16:9 Widescreen</span>
+        <span class="format-pill">Long-form</span>
+      </div>
+    </div>
+    <div class="showcase-video" style="max-width:800px;margin:0 auto;" onclick="playVideo(this,'r77HfXRnpp4')"><div class="video-thumb"><img src="https://i.ytimg.com/vi/r77HfXRnpp4/maxresdefault.jpg" alt="AI-generated landscape video"><div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="6,3 20,12 6,21"/></svg></div></div></div>
   </div></section>
 
   <!-- NOT REGULAR FACELESS -->
@@ -669,6 +690,8 @@
     function openLightbox(s){document.getElementById('lb-img').src=s;document.getElementById('lightbox').style.display='flex';}
     function closeLightbox(){document.getElementById('lightbox').style.display='none';}
     document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLightbox();});
+    function playShort(card,id){card.innerHTML='<iframe src="https://www.youtube-nocookie.com/embed/'+id+'?rel=0&modestbranding=1&autoplay=1" title="AI short" allowfullscreen allow="autoplay" style="width:100%;aspect-ratio:9/16;border:none;display:block;"></iframe>';card.onclick=null;card.style.cursor='default';}
+    function playVideo(el,id){el.innerHTML='<iframe src="https://www.youtube-nocookie.com/embed/'+id+'?rel=0&modestbranding=1&autoplay=1" title="AI video" allowfullscreen allow="autoplay" style="width:100%;aspect-ratio:16/9;border:none;display:block;"></iframe>';el.onclick=null;el.style.cursor='default';}
   </script>
 </body>
 </html>
